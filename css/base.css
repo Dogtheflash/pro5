@@ -5,6 +5,8 @@
 html { scroll-behavior: smooth; scrollbar-width: none; background: transparent; }
 html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar { width:0; height:0; display:none; }
 
+.hidden { display: none !important; }
+
 body {
   background-image: none !important;
   background-color: var(--bg);

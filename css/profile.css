@@ -12,6 +12,14 @@
 .profile-console.interactive-hover { box-shadow: var(--shadow), 0 0 42px rgb(var(--accent-rgb) / .16), inset 0 1px 0 rgba(255,255,255,.1); }
 .profile-console.slide-to-color { animation:iosHostBack .42s var(--ios-ease) both; }
 .profile-console.slide-to-home { animation:iosHostFwd .42s var(--ios-ease) both; }
+.profile-console.page-mode .profile-banner,
+.profile-console.page-mode .profile-header,
+.profile-console.page-mode .presence-card,
+.profile-console.page-mode .activity-card,
+.profile-console.page-mode .meta-grid,
+.profile-console.page-mode .about-card,
+.profile-console.page-mode .social-row,
+.profile-console.page-mode .profile-footer { display: none !important; }
 .profile-console::before { content:""; position:absolute; inset:0; z-index:2; pointer-events:none; border-radius:inherit; padding:2px; background:linear-gradient(180deg, #ff7adf 0%, #c56cff 34%, rgba(255,255,255,.18) 50%, #5865f2 68%, #35e8ff 100%); -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; opacity:.85; }
 .profile-console::after { content:""; position:absolute; inset:0; z-index:3; pointer-events:none; border-radius:inherit; background:radial-gradient(360px circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(255,255,255,.16), rgb(var(--accent2-rgb) / .08) 28%, transparent 58%); opacity:0; mix-blend-mode:screen; transition:opacity .22s ease; }
 .profile-console.interactive-hover::after { opacity:0; }
