@@ -1,90 +1,72 @@
 /* ============================================================
-   CONFIG & GLOBAL HELPERS
+   iOS 26 Loading Screen — Configuration & Helpers
    ============================================================ */
 'use strict';
 
-window.__LOW_PERF = (function () {
-  try {
-    var touch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
-    var small = window.matchMedia('(max-width: 900px)').matches;
-    var weak  = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4;
-    var slow  = (navigator.connection && navigator.connection.saveData) === true;
-    var rm    = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    return touch || small || weak || slow || rm;
-  } catch (e) { return false; }
-})();
-if (window.__LOW_PERF) document.documentElement.classList.add('low-perf');
+export const CHIME_MS = 4200;
+export const AURORA_HEX = '#f0399c';
+export const MOOD = 'vapor';
 
-export const uiAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+export const BOOT_LINES = [
+  'Preparing iOS 26\u2026',
+  'Mounting Liquid Glass\u2026',
+  'Calibrating Taptic Engine\u2026',
+  'Restoring your Apple ID\u2026',
+  'Almost there\u2026',
+];
 
-export function playUISound(type) {
-  try {
-    if (uiAudioCtx.state === 'suspended') uiAudioCtx.resume();
-    
-    const osc = uiAudioCtx.createOscillator();
-    const gainNode = uiAudioCtx.createGain();
-    osc.connect(gainNode);
-    gainNode.connect(uiAudioCtx.destination);
-    
-    if (type === 'theme') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, uiAudioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1200, uiAudioCtx.currentTime + 0.05);
-      gainNode.gain.setValueAtTime(0.08, uiAudioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, uiAudioCtx.currentTime + 0.1);
-      osc.start(uiAudioCtx.currentTime);
-      osc.stop(uiAudioCtx.currentTime + 0.1);
-    } else if (type === 'page') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(400, uiAudioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(50, uiAudioCtx.currentTime + 0.3);
-      gainNode.gain.setValueAtTime(0.12, uiAudioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, uiAudioCtx.currentTime + 0.3);
-      osc.start(uiAudioCtx.currentTime);
-      osc.stop(uiAudioCtx.currentTime + 0.3);
-    }
-  } catch(e) {
-    console.error("Audio playback failed", e);
-  }
+export const NAME = 'T\xFA Xinh Trai';
+export const STEP = 62;
+export const LEAD = 620;
+export const ENTER_MS = 900;
+
+/* ===== Aurora color helpers ===== */
+export function hexToHsl(hex) {
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const delta = max - min;
+  const l = (max + min) / 2;
+  if (delta === 0) return { h: 0, s: 0, l: l };
+  const s = delta / (1 - Math.abs(2 * l - 1));
+  let h;
+  if (max === r) h = ((g - b) / delta) % 6;
+  else if (max === g) h = (b - r) / delta + 2;
+  else h = (r - g) / delta + 4;
+  return { h: (h * 60 + 360) % 360, s: s, l: l };
 }
 
-export const DISCORD_USER_ID = '917263515209859102';
-export const DECORATIONS = [
-  'anime-dang-yeu.png',
-  'anime-do-mo-hoi.png',
-  'anime-gian-du.png',
-  'anime-hon-lia-kho-xac.png',
-  'anime-mat-long-lanh.png',
-  'anime-nani.png',
-  'anime-toa-nang-luong.png',
-  'fantasy-hoa-kiem.png',
-  'fantasy-ma-thuat.png',
-  'fantasy-tinh-linh.png',
-  'buom-dem.png',
-];
+export function hexToHue(hex) { return Math.round(hexToHsl(hex).h); }
 
-export const statusLabels = {
-  online: 'Đang online',
-  idle: 'Đang rảnh',
-  dnd: 'Đừng làm phiền',
-  offline: 'Đang offline',
-};
+export function hsla(hsl, alpha) {
+  const sat = Math.round(Math.min(1, Math.max(0.35, hsl.s)) * 100);
+  const light = Math.round(Math.min(0.72, Math.max(0.42, hsl.l)) * 100);
+  return 'hsla(' + Math.round((hsl.h + 360) % 360) + ', ' + sat + '%, ' + light + '%, ' + alpha + ')';
+}
 
-export const profileTypingWords = ['Chinatsu Kamado', 'Đẹp Trai', 'Hikikomori', 'Chơi Game Hay', 'Fan Anime', 'Minecraft'];
+export function buildAuroraColors(hex) {
+  const base = hexToHsl(hex);
+  return [
+    hsla(base, 0.5),
+    hsla({ h: base.h + 42, s: base.s, l: base.l * 1.05 }, 0.45),
+    hsla({ h: base.h - 36, s: base.s, l: base.l * 0.95 }, 0.4),
+    hsla({ h: base.h + 84, s: base.s, l: base.l }, 0.32),
+  ];
+}
 
-export const activityTypes = {
-  0: { label: 'Đang chơi', icon: '🎮' },
-  1: { label: 'Đang stream', icon: '📡' },
-  2: { label: 'Đang nghe', icon: '♪' },
-  3: { label: 'Đang xem', icon: '▶' },
-  5: { label: 'Đang thi đấu', icon: '⚔' },
-};
+export const AURORA_HUE = hexToHue(AURORA_HEX);
 
-export const staticDiscordBadges = [
-  { name: 'Orbs Lính Mới', icon: './data/badges/Orbs-linh-moi.png' },
-  { name: 'HypeSquad Quả Cảm', icon: './data/badges/hypesquad-bravery.svg' },
-  { name: 'Nhà Phát Triển Tích Cực', icon: './data/badges/active-developer.svg' },
-  { name: 'Đăng ký từ 6 thg 12, 2021', icon: './data/badges/nitro-new.svg', nitro: true },
-  { name: 'Nitro Boost', icon: './data/badges/boost-6-month.svg', nitro: true },
-  { name: 'nakarotad#2413', icon: './data/badges/legacy-username.svg' },
-];
+/* Apply aurora CSS vars to root */
+export function applyAuroraVars() {
+  const colors = buildAuroraColors(AURORA_HEX);
+  const app = document.getElementById('app');
+  if (app) {
+    app.style.setProperty('--aurora-1', colors[0]);
+    app.style.setProperty('--aurora-2', colors[1]);
+    app.style.setProperty('--aurora-3', colors[2]);
+    app.style.setProperty('--aurora-4', colors[3]);
+  }
+}
