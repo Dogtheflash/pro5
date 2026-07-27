@@ -1,0 +1,73 @@
+/* ===== Hello stage ===== */
+.hello-fade { animation: hello-fade 0.8s ease-out both; }
+@keyframes hello-fade { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+.hello-svg { width: 330px; }
+@media (min-width: 768px) { .hello-svg { width: 460px; } }
+
+.hello-text {
+  font-family: 'Caveat', cursive;
+  font-size: 150px;
+  font-weight: 600;
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: hello-draw 2.6s 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes hello-draw { to { stroke-dashoffset: 0; } }
+
+.hello-sub {
+  margin-top: 24px;
+  font-size: 14px; font-weight: 500; letter-spacing: 0.25em;
+  color: rgba(255,255,255,0.35);
+  animation: line-swap 1s 2.6s both;
+}
+
+/* ===== Ready stage ===== */
+.stage-ready { gap: 32px; }
+
+.done-rise { animation: done-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes done-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+.ready-title-group { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.ready-title { font-size: 42px; font-weight: 100; letter-spacing: -0.03em; color: #fff; }
+.ready-subtitle { font-size: 14px; font-weight: 500; letter-spacing: 0.02em; color: rgba(255,255,255,0.45); }
+
+.glass-btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 9999px;
+  padding: 14px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+  border: 1px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.45);
+  transition: transform 0.2s ease;
+}
+.glass-btn:hover { border-color: rgba(255,255,255,0.35); }
+.glass-btn:active { transform: scale(0.95); }
+
+.replay-btn { overflow: hidden; }
+.replay-label { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; }
+
+.icon-rotate { width: 16px; height: 16px; }
+.icon-volume { width: 14px; height: 14px; }
+
+.btn-sheen {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: btn-sheen 3s 1s ease-in-out infinite;
+}
+@keyframes btn-sheen { 0% { transform: translateX(-120%); } 45%, 100% { transform: translateX(120%); } }
+
+.chime-btn {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.4);
+  transition: color 0.2s ease;
+}
+.chime-btn:hover { color: rgba(255,255,255,0.75); }
