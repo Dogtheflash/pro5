@@ -1,0 +1,109 @@
+/* ============================================================
+   ROOT VARIABLES & THEME TOKENS
+   ============================================================ */
+:root {
+  --bg: #000000;
+  --panel: rgba(15, 18, 32, 0.78);
+  --panel-strong: rgba(20, 24, 42, 0.92);
+  --line: rgba(255, 255, 255, 0.11);
+  --discord: #5865f2;
+  --cyan: #35e8ff;
+  --pink: #ff4fd8;
+  --green: #3ee87d;
+  --yellow: #f0b232;
+  --red: #f45b69;
+  --text: #eef4ff;
+  --muted: #9aa8c7;
+  --shadow: 0 28px 90px rgba(0, 0, 0, 0.52);
+
+  /* fluid typography */
+  --font-h1: clamp(1.3rem, 2.5vw + 0.5rem, 2.1rem);
+  --font-h2: clamp(1rem, 1.8vw + 0.3rem, 1.5rem);
+  --font-body: clamp(0.75rem, 1.2vw + 0.25rem, 0.9rem);
+  --font-mono: clamp(0.65rem, 1.1vw + 0.2rem, 0.82rem);
+  --font-label: clamp(0.6rem, 1vw + 0.15rem, 0.75rem);
+
+  /* Design Tokens */
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 24px; --s7: 32px; --s8: 48px;
+
+  --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 24px; --r-full: 999px;
+
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --ease-out: cubic-bezier(.22, .61, .36, 1);
+  --dur-fast: .18s;
+  --dur: .32s;
+  --dur-slow: .6s;
+
+  --accent-rgb: 88 101 242;
+  --accent2-rgb: 53 232 255;
+  --accent3-rgb: 255 79 216;
+
+  --fs-boost: 1.12;
+  --ios-ease: cubic-bezier(.32, .72, 0, 1);
+  --ios-dur: .42s;
+}
+
+/* ===== THEME: SAKURA PINK 🌸 ===== */
+[data-theme="sakura"] {
+  --bg: #12080e;
+  --panel: rgba(36, 14, 30, 0.78);
+  --panel-strong: rgba(48, 20, 40, 0.92);
+  --line: rgba(255, 180, 220, 0.13);
+  --discord: #e84393;
+  --cyan: #fd79a8;
+  --pink: #ff6b9d;
+  --green: #55efc4;
+  --yellow: #ffeaa7;
+  --red: #ff7675;
+  --text: #fff0f5;
+  --muted: #c9a0b5;
+  --shadow: 0 28px 90px rgba(40, 0, 20, 0.55);
+  --accent-rgb: 232 67 147;
+  --accent2-rgb: 253 121 168;
+  --accent3-rgb: 255 154 205;
+}
+
+/* ===== THEME: OCEAN BLUE 🌊 ===== */
+[data-theme="ocean"] {
+  --bg: #020c16;
+  --panel: rgba(8, 22, 42, 0.8);
+  --panel-strong: rgba(10, 28, 52, 0.92);
+  --line: rgba(100, 180, 255, 0.12);
+  --discord: #0984e3;
+  --cyan: #74b9ff;
+  --pink: #a29bfe;
+  --green: #00cec9;
+  --yellow: #fdcb6e;
+  --red: #d63031;
+  --text: #dfe6e9;
+  --muted: #8fa8c7;
+  --shadow: 0 28px 90px rgba(0, 10, 30, 0.6);
+  --accent-rgb: 9 132 227;
+  --accent2-rgb: 116 185 255;
+  --accent3-rgb: 162 155 254;
+}
+
+/* ===== THEME: NEON FIRE 🔥 ===== */
+[data-theme="fire"] {
+  --bg: #0e0600;
+  --panel: rgba(32, 16, 6, 0.8);
+  --panel-strong: rgba(44, 22, 8, 0.92);
+  --line: rgba(255, 140, 50, 0.12);
+  --discord: #e17055;
+  --cyan: #ff9f43;
+  --pink: #ff6348;
+  --green: #2ed573;
+  --yellow: #ffa502;
+  --red: #ff4757;
+  --text: #fff5ee;
+  --muted: #c7a88f;
+  --shadow: 0 28px 90px rgba(30, 8, 0, 0.55);
+  --accent-rgb: 225 112 85;
+  --accent2-rgb: 255 159 67;
+  --accent3-rgb: 255 99 72;
+}
+
+html { transition: background-color var(--dur-slow) var(--ease); }

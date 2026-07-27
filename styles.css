@@ -1,0 +1,14 @@
+/* ============================================================
+   Chinatsu Kamado — Profile & iOS 26 Master Stylesheet
+   Imports all modular CSS files from ./css/
+   ============================================================ */
+
+@import "./css/variables.css";
+@import "./css/base.css";
+@import "./css/terminal.css";
+@import "./css/profile.css";
+@import "./css/pages.css";
+@import "./css/loading-ios26.css";
+@import "./css/music-player.css";
+@import "./css/companion.css";
+@import "./css/minigame.css";
