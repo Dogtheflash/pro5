@@ -2404,6 +2404,66 @@ export default function App() {
       className="min-h-screen bg-[var(--color-background)]"
       style={{ ['--color-primary' as string]: country.accent, ['--color-accent' as string]: country.accent, ['--color-ring' as string]: country.accent }}
     >
+      {/* ========== BACKGROUND VIDEO & YOUTUBE LOFI ========== */}
+      <video
+        id="bg-video"
+        className="bg-video"
+        autoPlay
+        muted
+        loop
+        playsInline
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
+          zIndex: 0,
+          pointerEvents: 'none',
+          opacity: 0.45,
+        }}
+      >
+        <source src="./data/background/chillnight.mp4" type="video/mp4" />
+      </video>
+
+      <div
+        id="bg-yt-container"
+        className="bg-video"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: -1,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          opacity: 0.35,
+        }}
+      >
+        <iframe
+          id="bg-yt-player"
+          src="https://www.youtube.com/embed/zvIS6EIkXx8?enablejsapi=1&autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&disablekb=1&iv_load_policy=3&fs=0"
+          frameBorder="0"
+          allow="autoplay; encrypted-media"
+          allowFullScreen
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%) scale(1.25)',
+            width: '100vw',
+            height: '56.25vw',
+            minHeight: '100vh',
+            minWidth: '177.77vh',
+            pointerEvents: 'none',
+          }}
+        />
+      </div>
+      {/* ======================================================== */}
+
       {loading && <LoadingScreen onDone={startExperience} montage={COUNTRIES.map((c) => c.film[0])} />}
       {showFilm && <FilmModal country={country} onClose={() => setShowFilm(false)} />}
 
