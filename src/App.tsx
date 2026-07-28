@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import LoadingScreen from './LoadingScreen'
 
 interface Activity {
@@ -529,12 +529,667 @@ const CATEGORY_LABELS: Record<Activity['category'], string> = {
   other: 'Other',
 }
 
-function formatYen(amount: number) {
-  return `¥${amount.toLocaleString('en-US')}`
+interface Highlight {
+  title: string
+  blurb: string
+  image: string
+  alt: string
+  tag: string
 }
 
-function BudgetBar({ days }: { days: Day[] }) {
-  const allActivities = days.flatMap((d) => d.activities)
+interface Country {
+  id: string
+  name: string
+  nameLocal: string
+  flag: string
+  tagline: string
+  intro: string
+  accent: string
+  currencySymbol: string
+  currencyCode: string
+  fxPerUsd: number
+  motto: string
+  film: string[]
+  highlights: Highlight[]
+  itinerary: Day[]
+}
+
+const img = (id: string, w = 1600, h = 900) =>
+  `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format`
+
+// ─── Vietnam ───────────────────────────────────────────────────────────
+
+const VIETNAM_ITINERARY: Day[] = [
+  {
+    day: 1,
+    date: 'Oct 3',
+    city: 'Hanoi — Arrival & Old Quarter',
+    coverImage: img('1543355890-20bc0a26fda1', 1200, 500),
+    coverAlt: 'Motorbikes streaming through the streets of the Hanoi Old Quarter',
+    transport: 'Airport taxi → Old Quarter (₫250,000)',
+    activities: [
+      { time: '13:00', title: 'Arrive Noi Bai Airport', description: 'Land in the thousand-year-old capital and transfer into the tangle of the Old Quarter.', cost: 250000, category: 'transport' },
+      { time: '15:00', title: 'Check in — boutique townhouse', description: 'A narrow "tube house" hotel on a lane named for the goods once sold there.', cost: 1200000, category: 'accommodation' },
+      { time: '16:30', title: 'Hoan Kiem Lake & Ngoc Son', description: 'The legend of the returned sword, a red bridge, and a temple on an islet in the heart of town.', cost: 50000, category: 'attraction' },
+      { time: '18:00', title: 'Bia hoi corner', description: 'Perch on a plastic stool for the world\'s cheapest fresh-brewed draft beer.', cost: 80000, category: 'food' },
+      { time: '19:30', title: 'Dinner — bun cha', description: 'Grilled pork patties in a sweet-sour broth with herbs and nem spring rolls, Obama-style.', cost: 180000, category: 'food' },
+    ],
+  },
+  {
+    day: 2,
+    date: 'Oct 4',
+    city: 'Hanoi — Culture & Cuisine',
+    coverImage: img('1764745021303-c3d97bedd2c6', 1200, 500),
+    coverAlt: 'People eating at low tables outside a Hanoi street cafe',
+    transport: 'Walking + Grab bikes (₫120,000)',
+    activities: [
+      { time: '08:00', title: 'Pho breakfast at a street stall', description: 'The national bowl at dawn — beef broth simmered overnight, ladled over rice noodles.', cost: 60000, category: 'food' },
+      { time: '09:30', title: 'Ho Chi Minh Mausoleum', description: 'The solemn granite tomb of "Uncle Ho" and the stilt house and One Pillar Pagoda behind it.', cost: 0, category: 'attraction' },
+      { time: '11:00', title: 'Temple of Literature', description: "Vietnam's first university, founded 1070, with courtyards of stelae on stone tortoises.", cost: 70000, category: 'attraction' },
+      { time: '13:00', title: 'Egg coffee at Cafe Giang', description: 'The Hanoi invention: whipped egg yolk and condensed milk over strong coffee, like tiramisu.', cost: 40000, category: 'food' },
+      { time: '15:00', title: 'Museum of Ethnology', description: 'Full-scale longhouses of Vietnam\'s 54 ethnic groups in the garden.', cost: 60000, category: 'attraction' },
+      { time: '20:00', title: 'Water puppet theatre', description: 'A 1,000-year-old art form performed on a pool, with live traditional music.', cost: 200000, category: 'attraction' },
+    ],
+  },
+  {
+    day: 3,
+    date: 'Oct 5',
+    city: 'Ha Long Bay — Overnight Cruise',
+    coverImage: img('1593994602837-530142086918', 1200, 500),
+    coverAlt: 'Boats sailing among the limestone islands of Ha Long Bay',
+    transport: 'Limousine van Hanoi → Ha Long (₫450,000)',
+    activities: [
+      { time: '08:00', title: 'Transfer to Lan Ha Bay', description: 'Ride out to the quieter southern reaches of the great karst seascape.', cost: 450000, category: 'transport' },
+      { time: '12:30', title: 'Board a traditional junk', description: 'All-inclusive overnight cruise: cabin with a balcony over jade water, meals, and activities.', cost: 3200000, category: 'accommodation' },
+      { time: '14:00', title: 'Kayak the hidden lagoons', description: 'Paddle through low sea-caves into lagoons ringed by sheer limestone.', cost: 0, category: 'attraction' },
+      { time: '16:00', title: 'Ti Top Island viewpoint', description: 'Climb 400 steps for the classic panorama of islands scattered to the horizon.', cost: 50000, category: 'attraction' },
+      { time: '18:00', title: 'Sunset cooking class', description: 'Roll fresh spring rolls on the sundeck as the light goes gold.', cost: 0, category: 'food' },
+      { time: '20:00', title: 'Squid fishing off the deck', description: 'Drop a line under the boat lights into the still night bay.', cost: 0, category: 'attraction' },
+    ],
+  },
+  {
+    day: 4,
+    date: 'Oct 6',
+    city: 'Ninh Binh — Trang An & Tam Coc',
+    coverImage: img('1656692197297-cb1340b4d538', 1200, 500),
+    coverAlt: 'A rowboat gliding past karst cliffs on the Trang An river',
+    transport: 'Cruise → Ninh Binh transfer (₫600,000)',
+    activities: [
+      { time: '09:00', title: 'Disembark & drive inland', description: 'Head to the "Ha Long Bay on land" — karst towers rising from rice paddies.', cost: 600000, category: 'transport' },
+      { time: '11:00', title: 'Trang An sampan caves', description: 'A rower poles you through flooded limestone tunnels and past riverside temples.', cost: 250000, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — goat & crispy rice', description: 'Ninh Binh\'s specialty: mountain goat with com chay, golden fried rice crust.', cost: 200000, category: 'food' },
+      { time: '15:00', title: 'Hang Mua viewpoint', description: 'Climb 500 stone steps to a dragon ridge above the whole valley.', cost: 100000, category: 'attraction' },
+      { time: '17:00', title: 'Bai Dinh Pagoda', description: 'The largest temple complex in Vietnam, lined with 500 arhat statues.', cost: 0, category: 'attraction' },
+      { time: '19:00', title: 'Eco-homestay dinner', description: 'A bungalow among the paddies with a home-cooked family meal.', cost: 700000, category: 'accommodation' },
+    ],
+  },
+  {
+    day: 5,
+    date: 'Oct 7',
+    city: 'Sapa — Rice Terraces & Hill Tribes',
+    coverImage: img('1609412058473-c199497c3c5d', 1200, 500),
+    coverAlt: 'Terraced green rice fields cascading down a Sapa hillside',
+    transport: 'Overnight sleeper → Lao Cai + van (₫900,000)',
+    activities: [
+      { time: '06:00', title: 'Arrive in the highlands', description: 'Wake in the cool mountains near the Chinese border, cloud in the valleys.', cost: 900000, category: 'transport' },
+      { time: '09:00', title: 'Trek to Cat Cat village', description: 'Descend past waterfalls to a Black Hmong village of indigo weavers.', cost: 150000, category: 'attraction' },
+      { time: '12:00', title: 'Lunch with a Hmong family', description: 'A home meal of foraged greens, smoked pork, and rice wine.', cost: 150000, category: 'food' },
+      { time: '14:00', title: 'Muong Hoa valley trek', description: 'Walk the ridgeline paths between the most photographed terraces in Vietnam.', cost: 100000, category: 'attraction' },
+      { time: '17:00', title: 'Fansipan cable car', description: 'Ride to the 3,143m "Roof of Indochina" summit and its cloud-wreathed shrines.', cost: 800000, category: 'attraction' },
+      { time: '19:30', title: 'Sapa hotel & hot pot', description: 'A steaming lau dinner to warm up from the mountain chill.', cost: 1000000, category: 'accommodation' },
+    ],
+  },
+  {
+    day: 6,
+    date: 'Oct 8',
+    city: 'Hue — Imperial Citadel',
+    coverImage: img('1616486410185-81af2d32a2af', 1200, 500),
+    coverAlt: 'A pale imperial building beside the river in Hue',
+    transport: 'Flight Hanoi → Hue (Phu Bai) (₫1,600,000)',
+    activities: [
+      { time: '08:00', title: 'Fly south to Hue', description: 'To the former seat of the Nguyen emperors on the Perfume River.', cost: 1600000, category: 'transport' },
+      { time: '11:00', title: 'Imperial Citadel', description: 'Walled palaces and the Forbidden Purple City, modelled on Beijing.', cost: 200000, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — bun bo Hue', description: 'The fiery lemongrass beef noodle soup born in this royal city.', cost: 90000, category: 'food' },
+      { time: '15:00', title: 'Perfume River dragon boat', description: 'Sail upstream past pagodas on a hand-painted dragon boat.', cost: 150000, category: 'transport' },
+      { time: '16:00', title: 'Thien Mu Pagoda', description: 'The seven-tiered icon of Hue on a bluff over the river.', cost: 0, category: 'attraction' },
+      { time: '18:00', title: 'Tu Duc Royal Tomb', description: 'A poet-emperor\'s garden mausoleum of pavilions and lotus ponds.', cost: 150000, category: 'attraction' },
+      { time: '20:00', title: 'Riverside hotel & dinner', description: 'Royal-style "imperial" small plates by the water.', cost: 1100000, category: 'accommodation' },
+    ],
+  },
+  {
+    day: 7,
+    date: 'Oct 9',
+    city: 'Da Nang — Golden Bridge & Beach',
+    coverImage: img('1741138327956-dfa75763b50d', 1200, 500),
+    coverAlt: 'The Golden Bridge held aloft by two giant stone hands',
+    transport: 'Hai Van Pass drive → Da Nang (₫500,000)',
+    activities: [
+      { time: '08:00', title: 'Hai Van Pass drive', description: 'The cloud-catcher mountain road with sweeping views of the South China Sea.', cost: 500000, category: 'transport' },
+      { time: '10:30', title: 'Ba Na Hills & Golden Bridge', description: 'A cable car to the hill station and the walkway cradled in two giant hands.', cost: 900000, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — mi quang', description: 'Central Vietnam\'s turmeric noodles with shrimp, pork, and a crisp rice cracker.', cost: 100000, category: 'food' },
+      { time: '15:00', title: 'Marble Mountains', description: 'Five marble-and-limestone hills honeycombed with caves and Buddhist shrines.', cost: 80000, category: 'attraction' },
+      { time: '17:00', title: 'My Khe Beach sunset', description: 'A swim off one of the finest city beaches in Asia.', cost: 0, category: 'attraction' },
+      { time: '19:30', title: 'Seafood on the sand', description: 'Grilled scallops and clams with garlic butter at a beachfront grill.', cost: 350000, category: 'food' },
+    ],
+  },
+  {
+    day: 8,
+    date: 'Oct 10',
+    city: 'Hoi An — Lantern Old Town',
+    coverImage: img('1755709986407-f72e45084ff2', 1200, 500),
+    coverAlt: 'Silk lanterns glowing over a night market in Hoi An',
+    transport: 'Short transfer Da Nang → Hoi An (₫300,000)',
+    activities: [
+      { time: '09:00', title: 'Custom tailoring fitting', description: 'Hoi An\'s famous tailors — a bespoke ao dai or linen suit ready by evening.', cost: 1500000, category: 'other' },
+      { time: '11:00', title: 'Old Town walk', description: 'The Japanese Covered Bridge, Chinese assembly halls, and ochre merchant houses.', cost: 120000, category: 'attraction' },
+      { time: '13:00', title: 'Cao lau & white rose', description: 'Two dishes found only here: smoky noodles and translucent shrimp dumplings.', cost: 120000, category: 'food' },
+      { time: '15:00', title: 'Tra Que herb-village class', description: 'Cycle to an organic herb village for a hands-on Vietnamese cooking class.', cost: 700000, category: 'food' },
+      { time: '18:30', title: 'Float a river lantern', description: 'Set a paper lantern adrift on the Thu Bon at dusk for luck.', cost: 30000, category: 'attraction' },
+      { time: '20:00', title: 'Night market & bridge lights', description: 'The whole town glows; browse silk, street food, and lantern stalls.', cost: 150000, category: 'food' },
+    ],
+  },
+  {
+    day: 9,
+    date: 'Oct 11',
+    city: 'Ho Chi Minh City — Saigon',
+    coverImage: img('1521019795854-14e15f600980', 1200, 500),
+    coverAlt: 'The riverside skyline of Ho Chi Minh City',
+    transport: 'Flight Da Nang → HCMC (₫1,400,000)',
+    activities: [
+      { time: '07:30', title: 'Fly to Saigon', description: 'South to the frenetic economic heart of Vietnam.', cost: 1400000, category: 'transport' },
+      { time: '10:00', title: 'War Remnants Museum', description: 'An unflinching account of the American War from the Vietnamese side.', cost: 40000, category: 'attraction' },
+      { time: '11:30', title: 'Reunification Palace', description: 'The 1975 gates-crashing tank site, frozen in mid-century decor.', cost: 40000, category: 'attraction' },
+      { time: '13:00', title: 'Banh mi & ca phe sua da', description: 'A crackling baguette sandwich and iced coffee, French colonialism made delicious.', cost: 60000, category: 'food' },
+      { time: '15:00', title: 'Cu Chi Tunnels', description: 'Crawl a section of the 250km guerrilla tunnel network outside the city.', cost: 400000, category: 'attraction' },
+      { time: '19:00', title: 'Rooftop bar over the city', description: 'Cocktails high above the motorbike rivers and neon.', cost: 350000, category: 'food' },
+      { time: '21:00', title: 'Ben Thanh night market', description: 'Last-minute lacquerware, coffee, and knock-off finds.', cost: 200000, category: 'other' },
+    ],
+  },
+  {
+    day: 10,
+    date: 'Oct 12',
+    city: 'Mekong Delta — Farewell',
+    coverImage: img('1543411789-1a67a2ac05c6', 1200, 500),
+    coverAlt: 'A wooden boat carrying travellers on a Mekong Delta canal',
+    transport: 'Van → My Tho / Ben Tre (₫450,000)',
+    activities: [
+      { time: '07:00', title: 'Drive to the Mekong', description: 'Out to the "rice bowl" delta, a maze of channels and floating life.', cost: 450000, category: 'transport' },
+      { time: '09:00', title: 'Sampan through coconut canals', description: 'A hand-rowed boat under the palms in a conical hat.', cost: 300000, category: 'attraction' },
+      { time: '10:30', title: 'Cai Rang floating market', description: 'Wholesalers trade produce boat-to-boat, wares hung from tall poles.', cost: 0, category: 'attraction' },
+      { time: '11:30', title: 'Coconut candy workshop', description: 'Watch sticky coconut candy pulled and cut, with honey-ginger tea.', cost: 100000, category: 'food' },
+      { time: '13:00', title: 'Elephant-ear fish lunch', description: 'A whole crispy fish wrapped into fresh rice-paper rolls at a garden restaurant.', cost: 250000, category: 'food' },
+      { time: '16:00', title: 'Return to Saigon', description: 'A last Vietnamese coffee before the airport.', cost: 60000, category: 'food' },
+      { time: '20:00', title: 'Departure — tam biet', description: 'To the airport with a suitcase of silk and spice. Until next time, Vietnam.', cost: 300000, category: 'transport' },
+    ],
+  },
+]
+
+// ─── China ─────────────────────────────────────────────────────────────
+
+const CHINA_ITINERARY: Day[] = [
+  {
+    day: 1,
+    date: 'Nov 1',
+    city: 'Beijing — Forbidden City & Tiananmen',
+    coverImage: img('1603120527222-33f28c2ce89e', 1200, 500),
+    coverAlt: 'Aerial view over the golden rooftops of the Forbidden City',
+    transport: 'Airport Express → city (CN¥25)',
+    activities: [
+      { time: '11:00', title: 'Arrive Beijing Capital', description: 'Land in the 3,000-year-old capital and ride the maglev-fast Airport Express in.', cost: 25, category: 'transport' },
+      { time: '13:00', title: 'Check in — courtyard hotel', description: 'A restored siheyuan courtyard house in a hutong near Wangfujing.', cost: 750, category: 'accommodation' },
+      { time: '14:30', title: 'Tiananmen Square', description: 'The vast ceremonial heart of the nation, ringed by monumental halls.', cost: 0, category: 'attraction' },
+      { time: '15:30', title: 'The Forbidden City', description: 'Nine thousand rooms behind vermillion walls — the imperial palace of 24 emperors.', cost: 60, category: 'attraction' },
+      { time: '18:00', title: 'Jingshan Park sunset', description: 'Climb the hill behind the palace for the golden-hour view over its rooftops.', cost: 10, category: 'attraction' },
+      { time: '19:30', title: 'Dinner — Peking duck', description: 'Lacquered duck carved tableside, rolled with scallion and plum sauce at Siji Minfu.', cost: 320, category: 'food' },
+    ],
+  },
+  {
+    day: 2,
+    date: 'Nov 2',
+    city: 'Beijing — Great Wall at Mutianyu',
+    coverImage: img('1608037521277-154cd1b89191', 1200, 500),
+    coverAlt: 'The Great Wall of China snaking over forested mountains',
+    transport: 'Private car to Mutianyu (CN¥400)',
+    activities: [
+      { time: '07:30', title: 'Drive to Mutianyu', description: 'The best-restored, least-crowded stretch of the Wall, 90 minutes north.', cost: 400, category: 'transport' },
+      { time: '09:30', title: 'Cable car to the ramparts', description: 'Rise to the ridgeline where the Wall runs tower to tower into the haze.', cost: 120, category: 'attraction' },
+      { time: '10:00', title: 'Hike towers 6 to 20', description: 'Walk the battlements for miles with the mountains falling away on both sides.', cost: 45, category: 'attraction' },
+      { time: '12:30', title: 'Toboggan down & lunch', description: 'Ride a metal luge back to the base, then a courtyard farmhouse meal.', cost: 150, category: 'food' },
+      { time: '15:00', title: 'Summer Palace', description: 'The imperial lakeside retreat: the Long Corridor and the marble boat.', cost: 60, category: 'attraction' },
+      { time: '19:00', title: 'Ghost Street food crawl', description: 'A red-lantern avenue of spicy crayfish and hotpot open late into the night.', cost: 180, category: 'food' },
+    ],
+  },
+  {
+    day: 3,
+    date: 'Nov 3',
+    city: 'Xi\'an — Terracotta Army',
+    coverImage: img('1527922891260-918d42a4efc8', 1200, 500),
+    coverAlt: 'Rows of life-size terracotta warriors in an excavation pit',
+    transport: 'High-speed rail G-train (CN¥515)',
+    activities: [
+      { time: '08:00', title: 'Bullet train to Xi\'an', description: 'Glide 1,200km in 4.5 hours at 300km/h to the start of the Silk Road.', cost: 515, category: 'transport' },
+      { time: '13:30', title: 'Check in near the Bell Tower', description: 'A hotel in the walled old city, minutes from the drum and bell towers.', cost: 620, category: 'accommodation' },
+      { time: '15:00', title: 'The Terracotta Army', description: 'Thousands of clay soldiers, each with a unique face, guarding an emperor\'s tomb since 210 BC.', cost: 120, category: 'attraction' },
+      { time: '18:00', title: 'City Wall bike ride', description: 'Cycle the full 14km circuit atop the intact Ming-era ramparts at dusk.', cost: 90, category: 'attraction' },
+      { time: '20:00', title: 'Dinner — biang biang noodles', description: 'Belt-wide hand-pulled noodles under chilli oil, named for the sound of the slap.', cost: 60, category: 'food' },
+    ],
+  },
+  {
+    day: 4,
+    date: 'Nov 4',
+    city: 'Xi\'an — Muslim Quarter & Pagoda',
+    coverImage: img('1563245372-f21724e3856d', 1200, 500),
+    coverAlt: 'Steamer baskets of Chinese dumplings',
+    transport: 'Metro & walking (CN¥20)',
+    activities: [
+      { time: '09:00', title: 'Big Wild Goose Pagoda', description: 'A 7th-century brick pagoda built to house sutras carried back from India.', cost: 50, category: 'attraction' },
+      { time: '11:00', title: 'Shaanxi History Museum', description: 'Tang gold, Zhou bronzes, and Silk Road treasures — one of China\'s finest collections.', cost: 0, category: 'attraction' },
+      { time: '13:00', title: 'Muslim Quarter street food', description: 'Roujiamo "Chinese burgers", lamb skewers, and yang rou paomo bread soup.', cost: 120, category: 'food' },
+      { time: '15:30', title: 'Great Mosque of Xi\'an', description: 'A 1,200-year-old mosque built entirely in Chinese temple style.', cost: 25, category: 'attraction' },
+      { time: '18:00', title: 'Tang dumpling banquet', description: 'Eighteen kinds of jiaozi shaped like the creatures they contain.', cost: 200, category: 'food' },
+      { time: '20:00', title: 'Datang Everbright light show', description: 'A Tang-themed boulevard ablaze with performers and lanterns.', cost: 0, category: 'attraction' },
+    ],
+  },
+  {
+    day: 5,
+    date: 'Nov 5',
+    city: 'Chengdu — Pandas & Sichuan',
+    coverImage: img('1625859043880-56acbcb6a6ac', 1200, 500),
+    coverAlt: 'A giant panda resting on a tree branch',
+    transport: 'Flight Xi\'an → Chengdu (CN¥700)',
+    activities: [
+      { time: '07:30', title: 'Fly to Chengdu', description: 'West to the laid-back capital of Sichuan, land of pandas and chilli.', cost: 700, category: 'transport' },
+      { time: '10:00', title: 'Giant Panda Base', description: 'Arrive early to catch the pandas at their bamboo breakfast, cubs and all.', cost: 55, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — mapo tofu', description: 'The numbing-hot Sichuan classic with dan dan noodles on the side.', cost: 90, category: 'food' },
+      { time: '15:00', title: 'Wuhou Shrine & Jinli Street', description: 'A Three Kingdoms memorial temple beside a bustling old-style snack street.', cost: 50, category: 'attraction' },
+      { time: '17:00', title: 'Renmin Park teahouse', description: 'Sip covered-bowl tea and try the famous ear-cleaning among local retirees.', cost: 40, category: 'food' },
+      { time: '20:00', title: 'Sichuan opera face-changing', description: 'The secret art of bian lian — masks flipping colour in the blink of an eye.', cost: 220, category: 'attraction' },
+    ],
+  },
+  {
+    day: 6,
+    date: 'Nov 6',
+    city: 'Zhangjiajie — Avatar Mountains',
+    coverImage: img('1514920735211-8c697444a248', 1200, 500),
+    coverAlt: 'Sandstone pillars rising through mist at Zhangjiajie',
+    transport: 'Flight Chengdu → Zhangjiajie (CN¥650)',
+    activities: [
+      { time: '07:00', title: 'Fly to Zhangjiajie', description: 'To the forest of sandstone spires that inspired the floating peaks of Avatar.', cost: 650, category: 'transport' },
+      { time: '10:00', title: 'Bailong glass elevator', description: 'A 326m glass lift bolted to a cliff face — the tallest outdoor lift on earth.', cost: 72, category: 'attraction' },
+      { time: '11:00', title: 'Hallelujah Mountain views', description: 'Walk the ridge platforms among the mist-wrapped, tree-topped pillars.', cost: 225, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — Tujia smoked pork', description: 'Cured mountain pork stir-fried with dried chilli, a hill-people staple.', cost: 90, category: 'food' },
+      { time: '15:00', title: 'Zhangjiajie Glass Bridge', description: 'A transparent span 300m above the canyon floor — not for the faint of heart.', cost: 138, category: 'attraction' },
+      { time: '18:00', title: 'Mountain hotel & dinner', description: 'A Tujia-style inn near the park gate with a hotpot supper.', cost: 700, category: 'accommodation' },
+    ],
+  },
+  {
+    day: 7,
+    date: 'Nov 7',
+    city: 'Guilin & Yangshuo — Li River',
+    coverImage: img('1636964886908-7b28097bc746', 1200, 500),
+    coverAlt: 'Karst peaks rising along the misty Li River',
+    transport: 'Flight Zhangjiajie → Guilin (CN¥600)',
+    activities: [
+      { time: '07:30', title: 'Fly to Guilin', description: 'South to the karst-country river town on every 20-yuan note.', cost: 600, category: 'transport' },
+      { time: '10:00', title: 'Li River raft cruise', description: 'Drift by bamboo raft past sugarloaf peaks and cormorant fishermen to Yangshuo.', cost: 300, category: 'transport' },
+      { time: '13:00', title: 'Lunch — Yangshuo beer fish', description: 'River fish braised with local beer, tomato, and chilli.', cost: 80, category: 'food' },
+      { time: '15:00', title: 'Cycle the Yulong River', description: 'Pedal country lanes between the paddies and water buffalo.', cost: 60, category: 'attraction' },
+      { time: '18:00', title: 'Impression Sanjie Liu', description: 'A Zhang Yimou light show staged on the river itself with 600 performers.', cost: 320, category: 'attraction' },
+      { time: '20:00', title: 'West Street evening', description: 'Yangshuo\'s lively old lane of bars, snacks, and lantern light.', cost: 120, category: 'food' },
+    ],
+  },
+  {
+    day: 8,
+    date: 'Nov 8',
+    city: 'Huangshan — Yellow Mountains',
+    coverImage: img('1591116446368-2078ad1c0fea', 1200, 500),
+    coverAlt: 'Peaks of Huangshan rising above a sea of clouds',
+    transport: 'Flight + bus to Huangshan (CN¥750)',
+    activities: [
+      { time: '07:00', title: 'Travel to Huangshan', description: 'To the granite peaks that shaped a thousand years of Chinese landscape painting.', cost: 750, category: 'transport' },
+      { time: '10:00', title: 'Cable car to the ridge', description: 'Rise into the pines and sculpted rock of the summit region.', cost: 90, category: 'transport' },
+      { time: '11:00', title: 'West Sea Canyon hike', description: 'The most spectacular trail, threading stairways cut into the cliffs.', cost: 190, category: 'attraction' },
+      { time: '14:00', title: 'Lunch on the mountain', description: 'Simple noodles and pickles at a summit lodge, carried up by porters.', cost: 120, category: 'food' },
+      { time: '16:00', title: 'Bright Summit clouds', description: 'Wait on the peak for the sea of clouds to roll between the pinnacles.', cost: 0, category: 'attraction' },
+      { time: '18:00', title: 'Summit hotel for sunrise', description: 'Sleep on the mountain to catch the famous dawn from the Refreshing Terrace.', cost: 900, category: 'accommodation' },
+    ],
+  },
+  {
+    day: 9,
+    date: 'Nov 9',
+    city: 'Hangzhou — West Lake',
+    coverImage: img('1588252910189-9c9f5535646b', 1200, 500),
+    coverAlt: 'A pagoda among trees above West Lake in Hangzhou',
+    transport: 'High-speed rail → Hangzhou (CN¥280)',
+    activities: [
+      { time: '08:00', title: 'Bullet train to Hangzhou', description: 'Down from the mountains to the city Marco Polo called the finest in the world.', cost: 280, category: 'transport' },
+      { time: '11:00', title: 'West Lake boat & causeway', description: 'A classic boat across the lake and a stroll along the willow-lined Su Causeway.', cost: 70, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — Longjing shrimp', description: 'River shrimp stir-fried with the local green tea, and Dongpo braised pork.', cost: 150, category: 'food' },
+      { time: '15:00', title: 'Lingyin Temple', description: 'A great Chan Buddhist monastery beside a hill of ancient rock-cut carvings.', cost: 75, category: 'attraction' },
+      { time: '17:00', title: 'Longjing tea village', description: 'Tasting Dragon Well tea straight from the terraced hills where it grows.', cost: 100, category: 'food' },
+      { time: '19:30', title: 'Impression West Lake', description: 'A dreamlike night show performed on a stage just beneath the water\'s surface.', cost: 300, category: 'attraction' },
+    ],
+  },
+  {
+    day: 10,
+    date: 'Nov 10',
+    city: 'Shanghai — The Bund & Farewell',
+    coverImage: img('1474181487882-5abf3f0ba6c2', 1200, 500),
+    coverAlt: 'The illuminated skyline of Shanghai across the river at night',
+    transport: 'High-speed rail → Shanghai (CN¥170)',
+    activities: [
+      { time: '08:00', title: 'Bullet train to Shanghai', description: 'A last high-speed hop to the dazzling city of the future.', cost: 170, category: 'transport' },
+      { time: '10:00', title: 'Yu Garden & bazaar', description: 'A Ming-dynasty scholar\'s garden of rockeries and ponds in the old town.', cost: 40, category: 'attraction' },
+      { time: '12:00', title: 'Xiaolongbao at Nanxiang', description: 'The original soup dumplings, pleated eighteen folds each.', cost: 90, category: 'food' },
+      { time: '14:00', title: 'Shanghai Tower deck', description: 'Up to the 128th floor of China\'s tallest building for a god\'s-eye view.', cost: 180, category: 'attraction' },
+      { time: '16:00', title: 'French Concession stroll', description: 'Plane-tree lanes, Art Deco villas, and the boutiques of Tianzifang.', cost: 0, category: 'other' },
+      { time: '18:30', title: 'The Bund at dusk', description: 'Colonial facades on one bank, the neon Pudong skyline blazing on the other.', cost: 0, category: 'attraction' },
+      { time: '21:00', title: 'Departure — zaijian', description: 'To the airport, the whole Middle Kingdom crossed in ten days. Zaijian, China.', cost: 200, category: 'transport' },
+    ],
+  },
+]
+
+// ─── Country registry ───────────────────────────────────────────────────
+
+const COUNTRIES: Country[] = [
+  {
+    id: 'japan',
+    name: 'Japan',
+    nameLocal: '日本',
+    flag: '🇯🇵',
+    tagline: 'Land of the Rising Sun',
+    intro:
+      'From the neon canyons of Tokyo to the moss gardens of Kyoto, the alpine thatch of Shirakawa-go and the floating torii of Miyajima — thirty days the length of the archipelago, where the hyper-modern and the ancient share the same street corner.',
+    accent: '#c0392b',
+    currencySymbol: '¥',
+    currencyCode: 'JPY',
+    fxPerUsd: 150,
+    motto: '一期一会 — one time, one meeting',
+    film: [
+      img('1606918801925-e2c914c4b503'),
+      img('1493976040374-85c8e12f0c0e'),
+      img('1542051841857-5f90071e7989'),
+      img('1528360983277-13d401cdc186'),
+      img('1504109586057-7a2ae83d1338'),
+      img('1756285338914-fc6e567d96bc'),
+    ],
+    highlights: [
+      { title: 'Fushimi Inari', blurb: 'Ten thousand vermillion torii climbing a sacred mountain.', image: img('1493976040374-85c8e12f0c0e', 800, 600), alt: 'Endless red torii gates', tag: 'Icon' },
+      { title: 'Mount Fuji', blurb: "Japan's sacred cone mirrored in the Five Lakes.", image: img('1606918801925-e2c914c4b503', 800, 600), alt: 'Mount Fuji over a lake', tag: 'Natural Wonder' },
+      { title: 'teamLab Digital Art', blurb: 'Immersive rooms of light and water in Tokyo.', image: img('1703437874711-d6d3de1e0013', 800, 600), alt: 'Glowing digital art installation', tag: 'Modern' },
+      { title: 'Shirakawa-go', blurb: 'Thatched gassho farmhouses in an alpine valley.', image: img('1756285338914-fc6e567d96bc', 800, 600), alt: 'Thatched farmhouses in a valley', tag: 'UNESCO' },
+      { title: 'Miyajima Torii', blurb: 'The great gate that floats on the rising tide.', image: img('1504109586057-7a2ae83d1338', 800, 600), alt: 'Red torii gate in the sea', tag: 'Icon' },
+      { title: 'Osaka Street Food', blurb: 'Takoyaki and neon along the Dotonbori canal.', image: img('1589452271712-64b8a66c7b71', 800, 600), alt: 'Glowing signs over Dotonbori', tag: 'Foodie' },
+    ],
+    itinerary: ITINERARY,
+  },
+  {
+    id: 'vietnam',
+    name: 'Vietnam',
+    nameLocal: 'Việt Nam',
+    flag: '🇻🇳',
+    tagline: 'Timeless Charm, North to South',
+    intro:
+      'A sinuous ribbon of a country, from the karst islands of Ha Long and the rice terraces of Sapa to the lantern-lit lanes of Hoi An and the motorbike rivers of Saigon — ten days of street food, silk, and emerald water.',
+    accent: '#0e7c66',
+    currencySymbol: '₫',
+    currencyCode: 'VND',
+    fxPerUsd: 25000,
+    motto: 'Ăn quả nhớ kẻ trồng cây — remember who planted the tree',
+    film: [
+      img('1593994602837-530142086918'),
+      img('1755709986407-f72e45084ff2'),
+      img('1609412058473-c199497c3c5d'),
+      img('1741138327956-dfa75763b50d'),
+      img('1656692197297-cb1340b4d538'),
+    ],
+    highlights: [
+      { title: 'Ha Long Bay', blurb: 'Two thousand limestone islands rising from jade water.', image: img('1593994602837-530142086918', 800, 600), alt: 'Limestone islands in Ha Long Bay', tag: 'UNESCO' },
+      { title: 'Hoi An Lanterns', blurb: 'A silk-trading port aglow with paper lanterns.', image: img('1755709986407-f72e45084ff2', 800, 600), alt: 'Lanterns over a Hoi An market', tag: 'Icon' },
+      { title: 'Sapa Terraces', blurb: 'Emerald staircases farmed by hill-tribe villages.', image: img('1609412058473-c199497c3c5d', 800, 600), alt: 'Rice terraces in Sapa', tag: 'Highland' },
+      { title: 'Golden Bridge', blurb: 'A walkway lifted by two giant stone hands.', image: img('1741138327956-dfa75763b50d', 800, 600), alt: 'The Golden Bridge and its stone hands', tag: 'Modern' },
+      { title: 'Street Food', blurb: 'Pho, banh mi, and egg coffee on every corner.', image: img('1764745021303-c3d97bedd2c6', 800, 600), alt: 'Diners at a street cafe', tag: 'Foodie' },
+      { title: 'Mekong Delta', blurb: 'Floating markets in the rice bowl of the south.', image: img('1543411789-1a67a2ac05c6', 800, 600), alt: 'A boat on a Mekong canal', tag: 'River Life' },
+    ],
+    itinerary: VIETNAM_ITINERARY,
+  },
+  {
+    id: 'china',
+    name: 'China',
+    nameLocal: '中国',
+    flag: '🇨🇳',
+    tagline: 'The Middle Kingdom',
+    intro:
+      "Four thousand years across a continent — the Great Wall snaking over Beijing's hills, the buried army of Xi'an, the Avatar peaks of Zhangjiajie and the neon Bund of Shanghai, bound together by the world's fastest trains.",
+    accent: '#9e1b1b',
+    currencySymbol: 'CN¥',
+    currencyCode: 'CNY',
+    fxPerUsd: 7.2,
+    motto: '读万卷书，行万里路 — read ten thousand books, walk ten thousand miles',
+    film: [
+      img('1608037521277-154cd1b89191'),
+      img('1514920735211-8c697444a248'),
+      img('1636964886908-7b28097bc746'),
+      img('1603120527222-33f28c2ce89e'),
+      img('1474181487882-5abf3f0ba6c2'),
+    ],
+    highlights: [
+      { title: 'The Great Wall', blurb: 'Watchtowers marching over the mountains for miles.', image: img('1608037521277-154cd1b89191', 800, 600), alt: 'The Great Wall over mountains', tag: 'Wonder' },
+      { title: 'Forbidden City', blurb: 'Nine thousand rooms behind vermillion walls.', image: img('1603120527222-33f28c2ce89e', 800, 600), alt: 'Rooftops of the Forbidden City', tag: 'Imperial' },
+      { title: 'Terracotta Army', blurb: "An emperor's clay legion, each face unique.", image: img('1527922891260-918d42a4efc8', 800, 600), alt: 'Terracotta warriors in a pit', tag: 'UNESCO' },
+      { title: 'Zhangjiajie', blurb: 'The sandstone pillars that inspired Avatar.', image: img('1514920735211-8c697444a248', 800, 600), alt: 'Sandstone pillars in mist', tag: 'Natural Wonder' },
+      { title: 'Li River', blurb: 'Karst peaks and fishermen on a misty river.', image: img('1636964886908-7b28097bc746', 800, 600), alt: 'Karst peaks along the Li River', tag: 'Scenic' },
+      { title: 'Giant Pandas', blurb: "Chengdu's bamboo-munching national treasures.", image: img('1625859043880-56acbcb6a6ac', 800, 600), alt: 'A giant panda in a tree', tag: 'Wildlife' },
+    ],
+    itinerary: CHINA_ITINERARY,
+  },
+]
+
+function formatMoney(amount: number, c: Country) {
+  return `${c.currencySymbol}${amount.toLocaleString('en-US')}`
+}
+
+function toUsd(amount: number, c: Country) {
+  return Math.round(amount / c.fxPerUsd)
+}
+
+// ─── Cinematic intro film (Ken Burns crossfade montage) ─────────────────
+
+function Montage({ images, playing, index }: { images: string[]; playing: boolean; index: number }) {
+  return (
+    <>
+      {images.map((src, i) => (
+        <img
+          key={src}
+          src={src}
+          alt=""
+          aria-hidden="true"
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1400ms] ease-in-out ${
+            i === index ? `opacity-100 ${playing ? 'kenburns-active' : ''}` : 'opacity-0'
+          }`}
+        />
+      ))}
+    </>
+  )
+}
+
+function IntroFilm({ country, onOpen }: { country: Country; onOpen: () => void }) {
+  const [index, setIndex] = useState(0)
+  const [playing, setPlaying] = useState(true)
+
+  useEffect(() => {
+    setIndex(0)
+  }, [country.id])
+
+  useEffect(() => {
+    if (!playing) return
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % country.film.length)
+    }, 3800)
+    return () => clearInterval(id)
+  }, [playing, country.film.length])
+
+  return (
+    <div className="relative mb-8 h-[440px] overflow-hidden bg-[var(--color-foreground)]">
+      <Montage images={country.film} playing={playing} index={index} />
+
+      {/* Cinematic letterbox + gradient */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/40" />
+      <div className="absolute inset-x-0 top-0 h-10 bg-black" />
+      <div className="absolute inset-x-0 bottom-0 h-10 bg-black" />
+
+      {/* NOW PLAYING marker */}
+      <div className="absolute left-5 top-14 flex items-center gap-2">
+        <span className="rec-pulse inline-block h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.35em] text-white/80">Now Playing</span>
+      </div>
+
+      {/* Title block */}
+      <div className="film-rise absolute bottom-14 left-5 right-5" key={country.id}>
+        <div className="mb-2 flex items-center gap-3">
+          <span className="text-2xl leading-none">{country.flag}</span>
+          <span className="font-mono text-xs uppercase tracking-[0.3em] text-white/70">{country.nameLocal}</span>
+        </div>
+        <h2 className="font-display text-5xl font-600 leading-none text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] sm:text-6xl">
+          {country.name}
+        </h2>
+        <p className="mt-3 max-w-xl font-display text-lg italic text-white/85">{country.tagline}</p>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={onOpen}
+            className="group flex items-center gap-2.5 rounded-full bg-white/95 px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-[var(--color-foreground)] transition-transform duration-200 hover:scale-[1.04] active:scale-95"
+          >
+            <span className="grid h-5 w-5 place-items-center rounded-full bg-[var(--color-primary)] text-white">
+              <span className="ml-0.5 text-[9px]">▶</span>
+            </span>
+            Watch the intro film
+          </button>
+          <button
+            type="button"
+            onClick={() => setPlaying((p) => !p)}
+            className="rounded-full border border-white/40 px-4 py-2.5 font-mono text-xs uppercase tracking-widest text-white/90 transition-colors hover:bg-white/10"
+          >
+            {playing ? 'Pause' : 'Play'}
+          </button>
+        </div>
+      </div>
+
+      {/* Slide progress ticks */}
+      <div className="absolute bottom-14 right-5 hidden gap-1.5 sm:flex">
+        {country.film.map((src, i) => (
+          <button
+            key={src}
+            type="button"
+            aria-label={`Scene ${i + 1}`}
+            onClick={() => setIndex(i)}
+            className={`h-1 rounded-full transition-all duration-300 ${
+              i === index ? 'w-7 bg-white' : 'w-3 bg-white/40 hover:bg-white/70'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function FilmModal({ country, onClose }: { country: Country; onClose: () => void }) {
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setIndex((i) => (i + 1) % country.film.length), 3200)
+    return () => clearInterval(id)
+  }, [country.film.length])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="film-rise relative w-full max-w-4xl overflow-hidden rounded-lg bg-black shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative aspect-video w-full overflow-hidden bg-[var(--color-foreground)]">
+          <Montage images={country.film} playing index={index} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30" />
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close film"
+            className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/80"
+          >
+            ✕
+          </button>
+
+          <div className="absolute left-5 top-4 flex items-center gap-2">
+            <span className="rec-pulse inline-block h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.35em] text-white/80">Featurette</span>
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="text-xl leading-none">{country.flag}</span>
+              <span className="font-mono text-xs uppercase tracking-[0.3em] text-white/70">{country.nameLocal}</span>
+            </div>
+            <h3 className="font-display text-3xl font-600 text-white sm:text-4xl">{country.name}</h3>
+            <p className="mt-3 max-w-2xl font-body text-sm leading-relaxed text-white/85">{country.intro}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Highlights ─────────────────────────────────────────────────────────
+
+function Highlights({ country }: { country: Country }) {
+  return (
+    <section className="mb-10">
+      <div className="mb-4 flex items-baseline justify-between">
+        <h2 className="font-display text-2xl font-600 tracking-tight">Signature Experiences</h2>
+        <span className="font-mono text-xs uppercase tracking-widest text-[var(--color-muted-foreground)]">
+          {country.highlights.length} must-sees
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {country.highlights.map((h) => (
+          <article
+            key={h.title}
+            className="group relative overflow-hidden border border-[var(--color-border)] bg-[var(--color-muted)]"
+          >
+            <div className="relative aspect-[4/3] overflow-hidden">
+              <img
+                src={h.image}
+                alt={h.alt}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+              <span className="absolute left-2 top-2 rounded-sm bg-[var(--color-primary)] px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--color-primary-foreground)]">
+                {h.tag}
+              </span>
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <h3 className="font-display text-base font-600 leading-tight text-white">{h.title}</h3>
+                <p className="mt-0.5 font-body text-xs leading-snug text-white/80">{h.blurb}</p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function BudgetBar({ country }: { country: Country }) {
+  const allActivities = country.itinerary.flatMap((d) => d.activities)
   const total = allActivities.reduce((sum, a) => sum + a.cost, 0)
 
   const byCategory = (Object.keys(CATEGORY_LABELS) as Activity['category'][]).map((cat) => {
@@ -542,15 +1197,13 @@ function BudgetBar({ days }: { days: Day[] }) {
     return { cat, sum, pct: total > 0 ? (sum / total) * 100 : 0 }
   })
 
-  const usd = Math.round((total / 150) * 100) / 100
-
   return (
     <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-6 mb-8">
       <div className="flex items-baseline justify-between mb-4">
         <h2 className="font-display text-2xl font-600 tracking-tight">Budget Summary</h2>
         <div className="text-right">
-          <div className="font-mono text-3xl font-500 text-[var(--color-primary)]">{formatYen(total)}</div>
-          <div className="font-mono text-sm text-[var(--color-muted-foreground)]">≈ ${usd.toLocaleString('en-US')} USD</div>
+          <div className="font-mono text-3xl font-500 text-[var(--color-primary)]">{formatMoney(total, country)}</div>
+          <div className="font-mono text-sm text-[var(--color-muted-foreground)]">≈ ${toUsd(total, country).toLocaleString('en-US')} USD</div>
         </div>
       </div>
 
@@ -575,7 +1228,7 @@ function BudgetBar({ days }: { days: Day[] }) {
             />
             <div>
               <div className="font-body text-xs text-[var(--color-muted-foreground)]">{CATEGORY_LABELS[cat]}</div>
-              <div className="font-mono text-sm font-500">{formatYen(sum)}</div>
+              <div className="font-mono text-sm font-500">{formatMoney(sum, country)}</div>
             </div>
           </div>
         ))}
@@ -584,7 +1237,7 @@ function BudgetBar({ days }: { days: Day[] }) {
   )
 }
 
-function DayCard({ day, isActive, onClick }: { day: Day; isActive: boolean; onClick: () => void }) {
+function DayCard({ day, country, isActive, onClick }: { day: Day; country: Country; isActive: boolean; onClick: () => void }) {
   const dayTotal = day.activities.reduce((s, a) => s + a.cost, 0)
 
   return (
@@ -604,14 +1257,14 @@ function DayCard({ day, isActive, onClick }: { day: Day; isActive: boolean; onCl
           {day.city.split(' — ')[0]}
         </div>
         <div className={`font-mono text-xs mt-1 ${isActive ? 'opacity-80' : 'text-[var(--color-muted-foreground)]'}`}>
-          {formatYen(dayTotal)}
+          {formatMoney(dayTotal, country)}
         </div>
       </div>
     </button>
   )
 }
 
-function ActivityRow({ activity }: { activity: Activity }) {
+function ActivityRow({ activity, country }: { activity: Activity; country: Country }) {
   return (
     <div className="flex gap-4 py-4 border-b border-[var(--color-border)] last:border-0 group">
       <div className="w-14 flex-shrink-0">
@@ -634,7 +1287,7 @@ function ActivityRow({ activity }: { activity: Activity }) {
       </div>
       <div className="flex-shrink-0 text-right">
         {activity.cost > 0 ? (
-          <span className="font-mono text-sm font-500">{formatYen(activity.cost)}</span>
+          <span className="font-mono text-sm font-500">{formatMoney(activity.cost, country)}</span>
         ) : (
           <span className="font-mono text-sm text-[var(--color-muted-foreground)]">Free</span>
         )}
@@ -643,7 +1296,7 @@ function ActivityRow({ activity }: { activity: Activity }) {
   )
 }
 
-function DayDetail({ day }: { day: Day }) {
+function DayDetail({ day, country }: { day: Day; country: Country }) {
   const dayTotal = day.activities.reduce((s, a) => s + a.cost, 0)
 
   return (
@@ -669,55 +1322,113 @@ function DayDetail({ day }: { day: Day }) {
       <div className="bg-[var(--color-card)] border border-[var(--color-border)] p-5 mb-4">
         <div className="mb-2 pb-3 border-b border-[var(--color-border)] flex items-center justify-between">
           <span className="font-display text-base font-600">Schedule</span>
-          <span className="font-mono text-sm font-500 text-[var(--color-primary)]">{formatYen(dayTotal)} today</span>
+          <span className="font-mono text-sm font-500 text-[var(--color-primary)]">{formatMoney(dayTotal, country)} today</span>
         </div>
         {day.activities.map((activity, i) => (
-          <ActivityRow key={i} activity={activity} />
+          <ActivityRow key={i} activity={activity} country={country} />
         ))}
       </div>
     </div>
   )
 }
 
+function CountryTabs({ countries, activeId, onSelect }: { countries: Country[]; activeId: string; onSelect: (id: string) => void }) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-0.5">
+      {countries.map((c) => {
+        const active = c.id === activeId
+        return (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => onSelect(c.id)}
+            style={active ? { borderColor: c.accent, color: c.accent } : undefined}
+            className={`flex flex-shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 font-display text-sm font-600 transition-colors ${
+              active
+                ? 'border-b-2'
+                : 'border-transparent text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]'
+            }`}
+          >
+            <span className="text-base leading-none">{c.flag}</span>
+            {c.name}
+            <span className="font-mono text-[10px] font-400 opacity-60">{c.itinerary.length}d</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function App() {
-  const [activeDay, setActiveDay] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [countryId, setCountryId] = useState(COUNTRIES[0].id)
+  const [activeDay, setActiveDay] = useState(0)
+  const [showFilm, setShowFilm] = useState(false)
+
+  const country = COUNTRIES.find((c) => c.id === countryId) ?? COUNTRIES[0]
+  const grandTotal = country.itinerary.flatMap((d) => d.activities).reduce((s, a) => s + a.cost, 0)
+  const dateRange = `${country.itinerary[0].date} – ${country.itinerary[country.itinerary.length - 1].date}`
+
+  const selectCountry = (id: string) => {
+    setCountryId(id)
+    setActiveDay(0)
+    setShowFilm(false)
+  }
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)]">
+    <div
+      className="min-h-screen bg-[var(--color-background)]"
+      style={{ ['--color-primary' as string]: country.accent, ['--color-accent' as string]: country.accent, ['--color-ring' as string]: country.accent }}
+    >
       {loading && <LoadingScreen onDone={() => setLoading(false)} />}
+      {showFilm && <FilmModal country={country} onClose={() => setShowFilm(false)} />}
+
       {/* Header */}
       <header className="border-b border-[var(--color-border)] bg-[var(--color-card)] sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div>
-            <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase">Travel Journal</div>
-            <h1 className="font-display text-xl font-600 leading-tight">
-              Japan <span className="italic font-300">in Thirty Days</span>
-            </h1>
-          </div>
-          <div className="text-right">
-            <div className="font-mono text-xs text-[var(--color-muted-foreground)]">Aug 4 – Sep 2, 2025</div>
-            <div className="font-mono text-sm font-500 text-[var(--color-primary)]">
-              {formatYen(ITINERARY.flatMap((d) => d.activities).reduce((s, a) => s + a.cost, 0))} total
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase">The Grand Tour</div>
+              <h1 className="font-display text-xl font-600 leading-tight">
+                Asia <span className="italic font-300">in Three Chapters</span>
+              </h1>
+            </div>
+            <div className="text-right">
+              <div className="font-mono text-xs text-[var(--color-muted-foreground)]">
+                {country.name} · {dateRange}
+              </div>
+              <div className="font-mono text-sm font-500 text-[var(--color-primary)]">
+                {formatMoney(grandTotal, country)} · ≈ ${toUsd(grandTotal, country).toLocaleString('en-US')}
+              </div>
             </div>
           </div>
+          <CountryTabs countries={COUNTRIES} activeId={countryId} onSelect={selectCountry} />
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
+        {/* Cinematic intro film */}
+        <IntroFilm country={country} onOpen={() => setShowFilm(true)} />
+
+        {/* Signature experiences */}
+        <Highlights country={country} />
+
         {/* Budget bar */}
-        <BudgetBar days={ITINERARY} />
+        <BudgetBar country={country} />
 
         {/* Day nav + detail */}
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
           {/* Day selector */}
           <aside>
-            <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase mb-3">Itinerary</div>
+            <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase mb-3">
+              {country.name} Itinerary
+            </div>
             <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
-              {ITINERARY.map((day, i) => (
+              {country.itinerary.map((day, i) => (
                 <DayCard
                   key={day.day}
                   day={day}
+                  country={country}
                   isActive={i === activeDay}
                   onClick={() => setActiveDay(i)}
                 />
@@ -727,19 +1438,19 @@ export default function App() {
 
           {/* Day detail */}
           <section>
-            <DayDetail day={ITINERARY[activeDay]} />
+            <DayDetail day={country.itinerary[activeDay]} country={country} />
           </section>
         </div>
       </main>
 
       {/* Footer */}
       <footer className="border-t border-[var(--color-border)] mt-12 py-6">
-        <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <span className="font-mono text-xs text-[var(--color-muted-foreground)]">
-            All prices in Japanese Yen (¥). Exchange rate ≈ ¥150/USD.
+            Prices in {country.currencyCode} ({country.currencySymbol}). Rate ≈ {country.currencySymbol}{country.fxPerUsd.toLocaleString('en-US')}/USD.
           </span>
           <span className="font-display text-sm italic text-[var(--color-muted-foreground)]">
-            一期一会 — one time, one meeting
+            {country.motto}
           </span>
         </div>
       </footer>

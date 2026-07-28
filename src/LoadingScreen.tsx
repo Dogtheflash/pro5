@@ -97,7 +97,7 @@ export default function LoadingScreen({ onDone }: { onDone: () => void }) {
         {/* Wordmark */}
         <div className="ios-rise mt-10 text-center" style={{ animationDelay: '0.35s' }}>
           <h1 className="ios-shimmer-text font-display text-3xl font-600 tracking-tight">
-            Japan in Thirty Days
+            Asia in Three Chapters
           </h1>
         </div>
         <div
@@ -105,7 +105,7 @@ export default function LoadingScreen({ onDone }: { onDone: () => void }) {
           style={{ animationDelay: '0.5s' }}
         >
           <p className="font-mono text-xs uppercase tracking-[0.35em] text-white/55">
-            A Travel Journal
+            Japan · Vietnam · China
           </p>
         </div>
 
