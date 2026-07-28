@@ -181,3 +181,63 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .kenburns-active, .film-rise, .rec-pulse { animation: none; }
 }
+
+/* ── Flip cards — specialty / heritage stories ─────────────────────── */
+.flip {
+  perspective: 1200px;
+}
+.flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-style: preserve-3d;
+}
+.flip:hover .flip-inner,
+.flip:focus-within .flip-inner,
+.flip.is-flipped .flip-inner {
+  transform: rotateY(180deg);
+}
+.flip-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+.flip-back {
+  transform: rotateY(180deg);
+}
+
+/* ── "Fly to country" transition ───────────────────────────────────── */
+@keyframes fly-in {
+  0%   { opacity: 0; transform: translateY(28px) scale(0.985); filter: blur(6px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.fly-in { animation: fly-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes fly-sweep {
+  0%   { opacity: 0; transform: scale(1.4); }
+  35%  { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(0.2); }
+}
+.fly-sweep { animation: fly-sweep 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+/* ── Region map pins ───────────────────────────────────────────────── */
+@keyframes map-ping {
+  0%   { transform: scale(1); opacity: 0.7; }
+  70%  { transform: scale(2.6); opacity: 0; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.map-ping { animation: map-ping 2.4s ease-out infinite; }
+
+@keyframes tick-in {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.tick-in { animation: tick-in 0.35s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { transition: none; }
+  .fly-in, .fly-sweep, .map-ping, .tick-in { animation: none; }
+}

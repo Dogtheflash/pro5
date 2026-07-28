@@ -1,5 +1,7 @@
+// The Asia Grand Tour — multi-country travel journal
 import { useEffect, useState } from 'react'
 import LoadingScreen from './LoadingScreen'
+import { startMusic, setMuted as setMusicMuted } from './ambientMusic'
 
 interface Activity {
   time: string
@@ -889,6 +891,396 @@ const CHINA_ITINERARY: Day[] = [
   },
 ]
 
+// ─── Thailand ──────────────────────────────────────────────────────────
+
+const THAILAND_ITINERARY: Day[] = [
+  {
+    day: 1, date: 'Jan 5', city: 'Bangkok — Temples & River',
+    coverImage: img('1510379872535-9310dc6fd6a7', 1200, 500),
+    coverAlt: 'Wat Arun rising over the Chao Phraya river in Bangkok',
+    transport: 'Airport Rail Link → city (฿45)',
+    activities: [
+      { time: '13:00', title: 'Arrive Suvarnabhumi', description: 'Land in the City of Angels and ride the rail link into the heat and hum.', cost: 45, category: 'transport' },
+      { time: '15:00', title: 'The Grand Palace & Wat Phra Kaew', description: 'Gilded spires and the revered Emerald Buddha in the old royal compound.', cost: 500, category: 'attraction' },
+      { time: '17:00', title: 'Wat Arun at golden hour', description: 'Climb the porcelain-studded prang of the Temple of Dawn over the river.', cost: 100, category: 'attraction' },
+      { time: '19:00', title: 'Dinner — pad thai & boat noodles', description: 'Street woks along a khlong, finished with lime, chilli, and crushed peanut.', cost: 180, category: 'food' },
+      { time: '21:00', title: 'Rooftop bar over the skyline', description: 'A sky-high cocktail above the glittering sprawl of the megacity.', cost: 450, category: 'food' },
+    ],
+  },
+  {
+    day: 2, date: 'Jan 6', city: 'Bangkok — Markets & Canals',
+    coverImage: img('1613672803979-a6edfc5a179b', 1200, 500),
+    coverAlt: 'People walking near a temple in Bangkok',
+    transport: 'Longtail boat & BTS Skytrain (฿120)',
+    activities: [
+      { time: '07:00', title: 'Damnoen Saduak floating market', description: 'Vendors paddle sampans laden with mango, pomelo, and coconut ice cream.', cost: 400, category: 'attraction' },
+      { time: '11:00', title: 'Chatuchak weekend market', description: 'Fifteen thousand stalls — the largest market in Southeast Asia.', cost: 300, category: 'other' },
+      { time: '13:00', title: 'Lunch — som tam & grilled chicken', description: 'Pounded green-papaya salad with sticky rice and gai yang.', cost: 150, category: 'food' },
+      { time: '16:00', title: 'Jim Thompson House', description: 'A teak compound of the American who revived Thai silk, hung with art.', cost: 200, category: 'attraction' },
+      { time: '20:00', title: 'Chinatown food crawl on Yaowarat', description: 'Neon, woks, and oyster omelettes down the old Chinese quarter.', cost: 300, category: 'food' },
+    ],
+  },
+  {
+    day: 3, date: 'Jan 7', city: 'Chiang Mai — Old City',
+    coverImage: img('1613672803979-a6edfc5a179b', 1200, 500),
+    coverAlt: 'A Lanna-style temple in Chiang Mai',
+    transport: 'Flight Bangkok → Chiang Mai (฿1,200)',
+    activities: [
+      { time: '08:00', title: 'Fly north to Lanna country', description: 'Up to the cool northern capital ringed by its old moat and walls.', cost: 1200, category: 'transport' },
+      { time: '11:00', title: 'Wat Phra That Doi Suthep', description: 'A golden chedi on a mountain reached by a 300-step naga staircase.', cost: 50, category: 'attraction' },
+      { time: '13:00', title: 'Khao soi lunch', description: 'The north\'s signature curried noodle soup with crisp egg noodles on top.', cost: 90, category: 'food' },
+      { time: '15:00', title: 'Old City temple wander', description: 'Wat Chedi Luang\'s ruined stupa and quiet teak monasteries.', cost: 40, category: 'attraction' },
+      { time: '18:00', title: 'Sunday walking street', description: 'Handicrafts, lanterns, and northern snacks down the old high street.', cost: 250, category: 'other' },
+    ],
+  },
+  {
+    day: 4, date: 'Jan 8', city: 'Chiang Mai — Elephants & Jungle',
+    coverImage: img('1613672803979-a6edfc5a179b', 1200, 500),
+    coverAlt: 'Jungle hills around Chiang Mai',
+    transport: 'Sanctuary shuttle (฿0, incl.)',
+    activities: [
+      { time: '08:00', title: 'Ethical elephant sanctuary', description: 'A full day feeding and bathing rescued elephants — no riding, no hooks.', cost: 2500, category: 'attraction' },
+      { time: '13:00', title: 'Riverside Thai lunch', description: 'A home-style spread beside the jungle stream.', cost: 0, category: 'food' },
+      { time: '15:30', title: 'Sticky Waterfalls of Bua Tong', description: 'Climb the limestone falls barefoot — the mineral rock grips your feet.', cost: 60, category: 'attraction' },
+      { time: '18:30', title: 'Thai cooking class', description: 'Pound your own curry paste for a green curry and mango sticky rice.', cost: 900, category: 'food' },
+    ],
+  },
+  {
+    day: 5, date: 'Jan 9', city: 'Krabi — Railay & Islands',
+    coverImage: img('1504214208698-ea1916a2195a', 1200, 500),
+    coverAlt: 'Longtail boats on turquoise water in Krabi',
+    transport: 'Flight + longtail to Railay (฿1,600)',
+    activities: [
+      { time: '08:00', title: 'Fly south to the Andaman', description: 'Down to the limestone-cliff coast of the turquoise sea.', cost: 1600, category: 'transport' },
+      { time: '12:00', title: 'Railay Beach', description: 'A cliff-locked peninsula reachable only by boat, beloved of climbers.', cost: 0, category: 'attraction' },
+      { time: '14:00', title: 'Four Islands longtail tour', description: 'Snorkel off Chicken Island and wade the sandbar at low tide.', cost: 800, category: 'attraction' },
+      { time: '18:00', title: 'Beachfront seafood', description: 'Grilled tiger prawns and whole snapper as the sun drops.', cost: 500, category: 'food' },
+    ],
+  },
+  {
+    day: 6, date: 'Jan 10', city: 'Phi Phi — Farewell',
+    coverImage: img('1519915247718-1703f9c6bb15', 1200, 500),
+    coverAlt: 'A longtail boat moored below Phi Phi cliffs',
+    transport: 'Ferry → Phi Phi + return (฿700)',
+    activities: [
+      { time: '08:00', title: 'Ferry to Ko Phi Phi', description: 'Out to the emerald islands of the Andaman on the morning boat.', cost: 700, category: 'transport' },
+      { time: '10:00', title: 'Maya Bay & Pileh Lagoon', description: 'The film-famous cove and a hidden turquoise lagoon ringed by cliffs.', cost: 900, category: 'attraction' },
+      { time: '13:00', title: 'Lunch on the sand', description: 'A last massaman curry with the sea at your feet.', cost: 250, category: 'food' },
+      { time: '17:00', title: 'Return to Krabi', description: 'The ferry back through the karst-dotted sea at dusk.', cost: 0, category: 'transport' },
+      { time: '20:00', title: 'Departure — la gòn', description: 'To the airport, salt-tanned and content. Until next time, Thailand.', cost: 400, category: 'transport' },
+    ],
+  },
+]
+
+// ─── Cambodia ──────────────────────────────────────────────────────────
+
+const CAMBODIA_ITINERARY: Day[] = [
+  {
+    day: 1, date: 'Feb 2', city: 'Siem Reap — Arrival',
+    coverImage: img('1602649306240-b9a8b17d12c6', 1200, 500),
+    coverAlt: 'A carved sandstone temple tower at Angkor',
+    transport: 'Airport tuk-tuk → town ($8)',
+    activities: [
+      { time: '14:00', title: 'Arrive Siem Reap', description: 'Land at the gateway to Angkor and buzz into town by tuk-tuk.', cost: 8, category: 'transport' },
+      { time: '16:00', title: 'Angkor Pass & Angkor Wat sunset', description: 'First sight of the largest religious monument on earth in evening light.', cost: 37, category: 'attraction' },
+      { time: '19:00', title: 'Khmer amok dinner', description: 'Fish steamed in banana leaf with coconut and kroeung spice paste.', cost: 12, category: 'food' },
+      { time: '21:00', title: 'Pub Street & night market', description: 'The neon heart of Siem Reap — Angkor beers and silk stalls.', cost: 10, category: 'other' },
+    ],
+  },
+  {
+    day: 2, date: 'Feb 3', city: 'Angkor — Sunrise & Temples',
+    coverImage: img('1504639650150-bf773680d8c3', 1200, 500),
+    coverAlt: 'Silhouette of Angkor Wat towers at sunrise',
+    transport: 'Private tuk-tuk day ($20)',
+    activities: [
+      { time: '05:00', title: 'Angkor Wat sunrise', description: 'The five towers mirrored in the reflecting pool as dawn breaks — the classic.', cost: 0, category: 'attraction' },
+      { time: '08:30', title: 'Angkor Thom & the Bayon', description: 'The walled royal city and 200 giant serene faces carved in stone.', cost: 0, category: 'attraction' },
+      { time: '11:00', title: 'Ta Prohm', description: 'The "Tomb Raider" temple, strangled and cradled by giant spung roots.', cost: 0, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — lok lak', description: 'Peppery stir-fried beef over rice with a lime-Kampot-pepper dip.', cost: 10, category: 'food' },
+      { time: '16:00', title: 'Pre Rup at golden hour', description: 'Climb the laterite temple-mountain for the view over the jungle canopy.', cost: 0, category: 'attraction' },
+    ],
+  },
+  {
+    day: 3, date: 'Feb 4', city: 'Angkor — Grand Circuit',
+    coverImage: img('1722052179738-659a771b5ff2', 1200, 500),
+    coverAlt: 'People crossing a green field near Angkor',
+    transport: 'Tuk-tuk grand loop ($25)',
+    activities: [
+      { time: '07:00', title: 'Banteay Srei', description: 'The "Citadel of Women" — pink sandstone carved in astonishing fine detail.', cost: 0, category: 'attraction' },
+      { time: '10:00', title: 'Preah Khan', description: 'A vast mossy monastery-temple, still half-swallowed by the forest.', cost: 0, category: 'attraction' },
+      { time: '13:00', title: 'Lunch at a local kitchen', description: 'Kdam chaa — stir-fried crab with green Kampot peppercorns.', cost: 12, category: 'food' },
+      { time: '15:30', title: 'Landmine Museum', description: 'A sobering, hopeful account of clearing Cambodia\'s buried legacy.', cost: 5, category: 'attraction' },
+      { time: '18:00', title: 'Phare Cambodian Circus', description: 'Acrobatics and storytelling by youth from a social-enterprise arts school.', cost: 38, category: 'attraction' },
+    ],
+  },
+  {
+    day: 4, date: 'Feb 5', city: 'Tonlé Sap — Floating Villages',
+    coverImage: img('1653959864991-c828b72c82a8', 1200, 500),
+    coverAlt: 'Sunset over the wide waters of Tonlé Sap',
+    transport: 'Boat on the great lake ($20)',
+    activities: [
+      { time: '08:00', title: 'Kampong Phluk stilt village', description: 'Houses on 10m stilts above the seasonal flood of the great lake.', cost: 20, category: 'attraction' },
+      { time: '10:00', title: 'Flooded forest paddle', description: 'A quiet row through the drowned mangroves in a wooden canoe.', cost: 8, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — fish & rice', description: 'The lake\'s freshwater catch, grilled simply by the shore.', cost: 8, category: 'food' },
+      { time: '16:00', title: 'Artisans Angkor workshop', description: 'Watch silk weaving and stone carving revive old Khmer crafts.', cost: 0, category: 'other' },
+      { time: '19:00', title: 'Farewell Khmer feast', description: 'A tasting of curries, prahok, and palm-sugar desserts. Chum reap lear.', cost: 18, category: 'food' },
+    ],
+  },
+]
+
+// ─── Laos ──────────────────────────────────────────────────────────────
+
+const LAOS_ITINERARY: Day[] = [
+  {
+    day: 1, date: 'Feb 8', city: 'Luang Prabang — Old Town',
+    coverImage: img('1628128573898-262b312f707e', 1200, 500),
+    coverAlt: 'A boat on the Mekong near Luang Prabang',
+    transport: 'Airport van → town (₭80,000)',
+    activities: [
+      { time: '13:00', title: 'Arrive Luang Prabang', description: 'Into the drowsy, gold-and-teak UNESCO town on the Mekong bend.', cost: 80000, category: 'transport' },
+      { time: '15:00', title: 'Wat Xieng Thong', description: 'The finest temple in Laos, its roofs sweeping almost to the ground.', cost: 20000, category: 'attraction' },
+      { time: '17:00', title: 'Mount Phousi sunset', description: 'Climb 328 steps for the view over the two rivers and the hills.', cost: 20000, category: 'attraction' },
+      { time: '19:00', title: 'Night market & Lao dinner', description: 'A handicraft lane and a vegetarian buffet piled from a single bowl.', cost: 60000, category: 'food' },
+    ],
+  },
+  {
+    day: 2, date: 'Feb 9', city: 'Kuang Si Falls',
+    coverImage: img('1745331568774-cc043277ac58', 1200, 500),
+    coverAlt: 'Sunset over a lake and mountains in Laos',
+    transport: 'Tuk-tuk to the falls (₭150,000)',
+    activities: [
+      { time: '06:00', title: 'Alms-giving ceremony', description: 'At dawn, a silent line of saffron monks receives sticky rice from kneeling locals.', cost: 30000, category: 'attraction' },
+      { time: '09:00', title: 'Kuang Si Waterfalls', description: 'Tiered turquoise pools cascading through the jungle — swim in the lower ones.', cost: 40000, category: 'attraction' },
+      { time: '11:00', title: 'Bear rescue sanctuary', description: 'Moon bears saved from bile farms, beside the falls trail.', cost: 0, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — laap & sticky rice', description: 'The minced-meat national dish, zingy with lime, mint, and toasted rice.', cost: 50000, category: 'food' },
+      { time: '18:00', title: 'Mekong sunset cruise', description: 'A slow boat with a Beerlao as the river turns molten.', cost: 120000, category: 'transport' },
+    ],
+  },
+  {
+    day: 3, date: 'Feb 10', city: 'Pak Ou & Farewell',
+    coverImage: img('1651670221939-2396cc2295c1', 1200, 500),
+    coverAlt: 'Wooden boats moored on the riverbank in Laos',
+    transport: 'Longboat up the Mekong (₭200,000)',
+    activities: [
+      { time: '08:00', title: 'Pak Ou Caves', description: 'Two river cliffs stuffed with thousands of retired Buddha statues.', cost: 30000, category: 'attraction' },
+      { time: '10:00', title: 'Whisky village stop', description: 'Riverside Ban Xang Hai, where lao-lao rice spirit is distilled.', cost: 20000, category: 'other' },
+      { time: '13:00', title: 'Khao soi Luang Prabang', description: 'The northern noodle soup, distinct from its Thai namesake.', cost: 45000, category: 'food' },
+      { time: '15:00', title: 'TAEC textile museum', description: 'The weavings and stories of Laos\'s many highland peoples.', cost: 25000, category: 'attraction' },
+      { time: '18:00', title: 'Departure — la kon', description: 'A last riverside coffee before the flight out. Farewell, Laos.', cost: 80000, category: 'transport' },
+    ],
+  },
+]
+
+// ─── Indonesia (Bali) ────────────────────────────────────────────────────
+
+const INDONESIA_ITINERARY: Day[] = [
+  {
+    day: 1, date: 'Mar 4', city: 'Ubud — Rice & Ritual',
+    coverImage: img('1559628233-eb1b1a45564b', 1200, 500),
+    coverAlt: 'Aerial view of Bali rice terraces',
+    transport: 'Airport car → Ubud (Rp350,000)',
+    activities: [
+      { time: '13:00', title: 'Arrive Denpasar', description: 'Land on the Island of the Gods and drive up into the green heart at Ubud.', cost: 350000, category: 'transport' },
+      { time: '16:00', title: 'Tegalalang rice terraces', description: 'The famous emerald staircase carved by the ancient subak water system.', cost: 50000, category: 'attraction' },
+      { time: '18:00', title: 'Sacred Monkey Forest', description: 'Mossy temples and long-tailed macaques in a jungle ravine.', cost: 80000, category: 'attraction' },
+      { time: '20:00', title: 'Dinner — babi guling', description: 'Balinese spit-roast suckling pig with sambal and crackling.', cost: 90000, category: 'food' },
+    ],
+  },
+  {
+    day: 2, date: 'Mar 5', city: 'Ubud — Temples & Volcano',
+    coverImage: img('1682406187130-84561b4e0e78', 1200, 500),
+    coverAlt: 'Lush palm-covered hillside in Bali',
+    transport: 'Private driver day (Rp600,000)',
+    activities: [
+      { time: '04:00', title: 'Mount Batur sunrise trek', description: 'Hike an active volcano by torchlight to breakfast eggs cooked in steam.', cost: 500000, category: 'attraction' },
+      { time: '10:00', title: 'Tirta Empul holy springs', description: 'Purify in the bubbling spouts of the sacred water temple.', cost: 50000, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — nasi campur', description: 'A "mixed rice" plate of satay, tempeh, greens, and sambal matah.', cost: 70000, category: 'food' },
+      { time: '16:00', title: 'Campuhan Ridge walk', description: 'A breezy grass spine between two river valleys at golden hour.', cost: 0, category: 'attraction' },
+      { time: '19:30', title: 'Legong dance at the palace', description: 'Gamelan and gilded costume in the Ubud royal courtyard.', cost: 100000, category: 'attraction' },
+    ],
+  },
+  {
+    day: 3, date: 'Mar 6', city: 'Uluwatu — Cliffs & Surf',
+    coverImage: img('1557093793-e196ae071479', 1200, 500),
+    coverAlt: 'Green mountain scenery in Bali',
+    transport: 'Transfer to the Bukit (Rp450,000)',
+    activities: [
+      { time: '09:00', title: 'Drive to the south cliffs', description: 'Down to the limestone peninsula of surf breaks and clifftop temples.', cost: 450000, category: 'transport' },
+      { time: '11:00', title: 'Padang Padang beach', description: 'A tiny cove reached through a cleft in the rock, framed by turquoise surf.', cost: 25000, category: 'attraction' },
+      { time: '13:00', title: 'Seafood at a warung', description: 'Grilled snapper and morning-glory greens above the waves.', cost: 100000, category: 'food' },
+      { time: '17:30', title: 'Uluwatu Temple & Kecak', description: 'A sea-cliff temple and the fire-lit chanting Kecak dance at sunset.', cost: 150000, category: 'attraction' },
+      { time: '20:00', title: 'Single Fin sundowners', description: 'A clifftop bar over the famous left-hand break.', cost: 120000, category: 'food' },
+    ],
+  },
+  {
+    day: 4, date: 'Mar 7', city: 'Nusa Penida — Farewell',
+    coverImage: img('1555400038-63f5ba517a47', 1200, 500),
+    coverAlt: 'Green rice field in Indonesia',
+    transport: 'Fast boat to Nusa Penida (Rp300,000)',
+    activities: [
+      { time: '07:00', title: 'Speedboat to Nusa Penida', description: 'A half-hour crossing to the wild island off Bali\'s southeast.', cost: 300000, category: 'transport' },
+      { time: '09:00', title: 'Kelingking Beach viewpoint', description: 'The T-Rex cliff plunging to a hidden white-sand cove — Bali\'s iconic shot.', cost: 50000, category: 'attraction' },
+      { time: '11:00', title: 'Angel\'s Billabong & Broken Beach', description: 'A natural infinity pool and a sea arch carved in the cliff.', cost: 25000, category: 'attraction' },
+      { time: '13:00', title: 'Island lunch', description: 'Mie goreng with a cold young coconut, feet in the sand.', cost: 60000, category: 'food' },
+      { time: '17:00', title: 'Return & departure — sampai jumpa', description: 'Boat back for the flight out. Terima kasih, Indonesia.', cost: 300000, category: 'transport' },
+    ],
+  },
+]
+
+// ─── Singapore ─────────────────────────────────────────────────────────
+
+const SINGAPORE_ITINERARY: Day[] = [
+  {
+    day: 1, date: 'Mar 10', city: 'Marina Bay & Gardens',
+    coverImage: img('1525625293386-3f8f99389edd', 1200, 500),
+    coverAlt: 'Marina Bay Sands reflected in the bay at dusk',
+    transport: 'MRT from Changi (S$2.50)',
+    activities: [
+      { time: '13:00', title: 'Arrive Changi Airport', description: 'Land at the world\'s best airport — the indoor Rain Vortex waterfall welcomes you.', cost: 3, category: 'transport' },
+      { time: '15:00', title: 'Gardens by the Bay', description: 'The Supertree Grove and cool-mist Cloud Forest dome.', cost: 53, category: 'attraction' },
+      { time: '18:00', title: 'Marina Bay Sands SkyPark', description: 'Up to the ship-shaped deck for the whole glittering skyline.', cost: 32, category: 'attraction' },
+      { time: '19:45', title: 'Spectra light & water show', description: 'A free nightly show dancing across the bay.', cost: 0, category: 'attraction' },
+      { time: '20:30', title: 'Chilli crab at a seafood hall', description: 'The messy national dish, mopped up with fried mantou buns.', cost: 60, category: 'food' },
+    ],
+  },
+  {
+    day: 2, date: 'Mar 11', city: 'Neighbourhoods & Hawkers',
+    coverImage: img('1496939376851-89342e90adcd', 1200, 500),
+    coverAlt: 'The Singapore riverfront and skyline',
+    transport: 'MRT day pass (S$10)',
+    activities: [
+      { time: '08:00', title: 'Kaya toast breakfast', description: 'Coconut-jam toast, soft eggs, and kopi at an old kopitiam.', cost: 6, category: 'food' },
+      { time: '10:00', title: 'Chinatown & Sri Mariamman', description: 'A Buddhist tooth relic temple and the oldest Hindu temple in the city.', cost: 0, category: 'attraction' },
+      { time: '12:30', title: 'Maxwell Hawker Centre', description: 'Michelin-starred chicken rice in a food-court institution.', cost: 8, category: 'food' },
+      { time: '15:00', title: 'Kampong Glam & Haji Lane', description: 'The Sultan Mosque, Arab Street textiles, and a mural-splashed alley.', cost: 0, category: 'other' },
+      { time: '17:00', title: 'Little India & Tekka', description: 'Garland stalls, spice shops, and a banana-leaf thali.', cost: 12, category: 'food' },
+      { time: '20:00', title: 'Singapore Sling at Raffles', description: 'The gin cocktail born at the Long Bar, peanut shells on the floor.', cost: 40, category: 'food' },
+    ],
+  },
+  {
+    day: 3, date: 'Mar 12', city: 'Sentosa & Farewell',
+    coverImage: img('1569288063643-5d29ad64df09', 1200, 500),
+    coverAlt: 'Marina Bay Sands hotel by day',
+    transport: 'Sentosa Express (S$4)',
+    activities: [
+      { time: '09:00', title: 'Cable car to Sentosa', description: 'Glide over the harbour to the resort island of beaches and rides.', cost: 35, category: 'transport' },
+      { time: '10:30', title: 'S.E.A. Aquarium', description: 'One of the largest aquariums on earth, with a vast open-ocean window.', cost: 44, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — laksa', description: 'Coconut-curry noodle soup, Singapore\'s Peranakan classic.', cost: 10, category: 'food' },
+      { time: '15:00', title: 'Southern Ridges canopy walk', description: 'The wave-form Henderson Waves bridge high in the rainforest.', cost: 0, category: 'attraction' },
+      { time: '18:00', title: 'Departure — see you again', description: 'MRT back to Changi, dazzled by the Lion City. Selamat jalan.', cost: 3, category: 'transport' },
+    ],
+  },
+]
+
+// ─── Philippines ─────────────────────────────────────────────────────────
+
+const PHILIPPINES_ITINERARY: Day[] = [
+  {
+    day: 1, date: 'Apr 6', city: 'El Nido — Arrival',
+    coverImage: img('1697135756100-7b610c8fe92e', 1200, 500),
+    coverAlt: 'Boats on the blue water of El Nido, Palawan',
+    transport: 'Flight + van to El Nido (₱1,500)',
+    activities: [
+      { time: '13:00', title: 'Arrive Palawan', description: 'Fly to the last frontier and drive the coast into the limestone town of El Nido.', cost: 1500, category: 'transport' },
+      { time: '16:00', title: 'Las Cabañas Beach sunset', description: 'A zipline over the bay and a San Miguel as the sun drops behind the islands.', cost: 500, category: 'attraction' },
+      { time: '19:00', title: 'Dinner — grilled seafood', description: 'The day\'s catch over coals with garlic rice and calamansi.', cost: 400, category: 'food' },
+    ],
+  },
+  {
+    day: 2, date: 'Apr 7', city: 'Bacuit Bay — Island Hopping',
+    coverImage: img('1697473259118-473211915531', 1200, 500),
+    coverAlt: 'Karst islands rising from the water in Palawan',
+    transport: 'Bangka outrigger tour (₱1,400)',
+    activities: [
+      { time: '08:30', title: 'Big & Small Lagoons', description: 'Kayak into cathedral-walled lagoons of impossibly clear jade water.', cost: 1400, category: 'attraction' },
+      { time: '11:00', title: 'Secret Lagoon & Shimizu', description: 'Duck through a rock keyhole and snorkel over coral gardens.', cost: 0, category: 'attraction' },
+      { time: '12:30', title: 'Beach barbecue lunch', description: 'Grilled tuna, pork, and tropical fruit served on a castaway beach.', cost: 0, category: 'food' },
+      { time: '14:30', title: 'Seven Commandos Beach', description: 'Powder sand and coconut palms for the afternoon swim.', cost: 0, category: 'attraction' },
+      { time: '19:00', title: 'Reggae bar on the strand', description: 'Live music and fresh mango shakes down the beach road.', cost: 300, category: 'food' },
+    ],
+  },
+  {
+    day: 3, date: 'Apr 8', city: 'Coron — Wrecks & Lakes',
+    coverImage: img('1763581616094-c1b4097972d4', 1200, 500),
+    coverAlt: 'Aerial view of boats in a tropical lagoon',
+    transport: 'Ferry El Nido → Coron (₱2,200)',
+    activities: [
+      { time: '07:00', title: 'Fast ferry to Coron', description: 'Across to the island of shipwrecks and jagged limestone.', cost: 2200, category: 'transport' },
+      { time: '11:00', title: 'Kayangan Lake', description: 'Climb to the viewpoint over "the cleanest lake in the Philippines".', cost: 400, category: 'attraction' },
+      { time: '13:00', title: 'Twin Lagoon', description: 'Swim between two lagoons through a gap beneath the cliff.', cost: 200, category: 'attraction' },
+      { time: '15:00', title: 'WWII wreck snorkel', description: 'Sunken Japanese ships in clear shallow water, alive with fish.', cost: 0, category: 'attraction' },
+      { time: '18:00', title: 'Maquinit hot springs', description: 'A saltwater hot spring in the mangroves to end the day.', cost: 200, category: 'attraction' },
+    ],
+  },
+  {
+    day: 4, date: 'Apr 9', city: 'Coron — Farewell',
+    coverImage: img('1771533679967-1b6f3a10be02', 1200, 500),
+    coverAlt: 'Jagged green islands in the Philippine sea',
+    transport: 'Airport van (₱300)',
+    activities: [
+      { time: '08:00', title: 'Mount Tapyas sunrise', description: 'Climb 700 steps to the giant hilltop cross over the harbour.', cost: 0, category: 'attraction' },
+      { time: '10:00', title: 'Coron town market', description: 'Dried fish, pearls, and cashews down the busy port lanes.', cost: 300, category: 'other' },
+      { time: '12:00', title: 'Lunch — kinilaw & sinigang', description: 'Ceviche-style raw fish and a sour tamarind soup.', cost: 350, category: 'food' },
+      { time: '15:00', title: 'Departure — paalam', description: 'To the little island airport, sun-drunk and salty. Salamat, Philippines.', cost: 300, category: 'transport' },
+    ],
+  },
+]
+
+// ─── Malaysia ──────────────────────────────────────────────────────────
+
+const MALAYSIA_ITINERARY: Day[] = [
+  {
+    day: 1, date: 'Apr 12', city: 'Kuala Lumpur — City of Towers',
+    coverImage: img('1506320775314-84c60bff00ff', 1200, 500),
+    coverAlt: 'The Petronas Twin Towers rising into the sky',
+    transport: 'KLIA Ekspres → city (RM55)',
+    activities: [
+      { time: '13:00', title: 'Arrive KL', description: 'Land in the melting-pot capital and ride the express train into town.', cost: 55, category: 'transport' },
+      { time: '15:00', title: 'Petronas Twin Towers', description: 'Up the skybridge and deck of the silver towers that defined the skyline.', cost: 98, category: 'attraction' },
+      { time: '17:30', title: 'KLCC Park & fountains', description: 'The tower reflected in the lake as the light-and-water show begins.', cost: 0, category: 'attraction' },
+      { time: '19:30', title: 'Jalan Alor street food', description: 'Char kway teow, satay, and durian down the neon hawker lane.', cost: 45, category: 'food' },
+    ],
+  },
+  {
+    day: 2, date: 'Apr 13', city: 'KL — Caves & Culture',
+    coverImage: img('1597148543182-830ef7bbb904', 1200, 500),
+    coverAlt: 'The Kuala Lumpur skyline at night',
+    transport: 'KTM Komuter & Grab (RM40)',
+    activities: [
+      { time: '08:00', title: 'Batu Caves', description: 'A giant golden Murugan and 272 rainbow steps into a limestone cave temple.', cost: 0, category: 'attraction' },
+      { time: '11:00', title: 'Merdeka Square & old KL', description: 'Mughal-style colonial facades around the independence field.', cost: 0, category: 'attraction' },
+      { time: '13:00', title: 'Lunch — nasi lemak', description: 'The national dish: coconut rice, sambal, anchovies, and egg in banana leaf.', cost: 15, category: 'food' },
+      { time: '15:00', title: 'Islamic Arts Museum', description: 'Domes, textiles, and manuscripts in one of Asia\'s finest collections.', cost: 20, category: 'attraction' },
+      { time: '19:00', title: 'Heli Lounge rooftop', description: 'Sunset drinks on an actual helipad ringed by skyscrapers.', cost: 50, category: 'food' },
+    ],
+  },
+  {
+    day: 3, date: 'Apr 14', city: 'Penang — George Town',
+    coverImage: img('1585031039436-16a906da2f05', 1200, 500),
+    coverAlt: 'A busy street beneath high-rises in Malaysia',
+    transport: 'Flight KL → Penang (RM120)',
+    activities: [
+      { time: '08:00', title: 'Fly to Penang', description: 'North to the food capital and heritage streets of George Town.', cost: 120, category: 'transport' },
+      { time: '11:00', title: 'Street art & clan jetties', description: 'The famous wall murals and stilt villages of the old waterfront clans.', cost: 0, category: 'attraction' },
+      { time: '13:00', title: 'Char kway teow crawl', description: 'Penang\'s smoky wok-fried noodles, the best in the country.', cost: 12, category: 'food' },
+      { time: '15:30', title: 'Kek Lok Si Temple', description: 'A hillside pagoda blending Chinese, Thai, and Burmese styles.', cost: 0, category: 'attraction' },
+      { time: '18:00', title: 'Penang Hill funicular', description: 'Ride to the cool summit for the sunset over the strait.', cost: 30, category: 'attraction' },
+    ],
+  },
+  {
+    day: 4, date: 'Apr 15', city: 'Penang — Farewell',
+    coverImage: img('1585835310560-5b850cc2b771', 1200, 500),
+    coverAlt: 'City buildings under a blue sky in Malaysia',
+    transport: 'Airport taxi (RM45)',
+    activities: [
+      { time: '08:00', title: 'Wet market breakfast', description: 'Dim sum and kaya toast among the morning traders.', cost: 15, category: 'food' },
+      { time: '10:00', title: 'Peranakan Mansion', description: 'The lavish teak-and-tile home of the Straits Chinese elite.', cost: 25, category: 'attraction' },
+      { time: '12:00', title: 'Assam laksa & cendol', description: 'Tangy tamarind fish noodles and shaved-ice dessert to finish.', cost: 14, category: 'food' },
+      { time: '15:00', title: 'Departure — jumpa lagi', description: 'To the airport, spice-fed and happy. Terima kasih, Malaysia.', cost: 45, category: 'transport' },
+    ],
+  },
+]
+
 // ─── Country registry ───────────────────────────────────────────────────
 
 const COUNTRIES: Country[] = [
@@ -983,7 +1375,406 @@ const COUNTRIES: Country[] = [
     ],
     itinerary: CHINA_ITINERARY,
   },
+  {
+    id: 'thailand',
+    name: 'Thailand',
+    nameLocal: 'ประเทศไทย',
+    flag: '🇹🇭',
+    tagline: 'The Land of Smiles',
+    intro:
+      'From the golden temples and khlongs of Bangkok to the misty north of Chiang Mai and the turquoise Andaman islands — six days of street woks, longtail boats, and gilded spires in the only Southeast Asian land never colonised.',
+    accent: '#1e6fbf',
+    currencySymbol: '฿',
+    currencyCode: 'THB',
+    fxPerUsd: 35,
+    motto: 'ไม่เป็นไร — mai pen rai, never mind, it is fine',
+    film: [
+      img('1510379872535-9310dc6fd6a7'),
+      img('1504214208698-ea1916a2195a'),
+      img('1519915247718-1703f9c6bb15'),
+      img('1442548520776-20acf66617df'),
+      img('1613672803979-a6edfc5a179b'),
+    ],
+    highlights: [
+      { title: 'Wat Arun', blurb: 'The porcelain Temple of Dawn on the Chao Phraya.', image: img('1510379872535-9310dc6fd6a7', 800, 600), alt: 'Wat Arun temple', tag: 'Icon' },
+      { title: 'Phi Phi Islands', blurb: 'Longtails and limestone cliffs in the Andaman.', image: img('1519915247718-1703f9c6bb15', 800, 600), alt: 'Longtail boat by cliffs', tag: 'Island' },
+      { title: 'Floating Markets', blurb: 'Sampans heaped with fruit on the khlongs.', image: img('1442548520776-20acf66617df', 800, 600), alt: 'Boat on the water', tag: 'Culture' },
+      { title: 'Chiang Mai Temples', blurb: 'Lanna spires and mountain monasteries.', image: img('1613672803979-a6edfc5a179b', 800, 600), alt: 'Temple in Chiang Mai', tag: 'Heritage' },
+      { title: 'Andaman Beaches', blurb: 'Teal seas and powder-white sand.', image: img('1504214208698-ea1916a2195a', 800, 600), alt: 'Longtail boats on teal sea', tag: 'Beach' },
+      { title: 'Street Food', blurb: 'Pad thai, som tam, and mango sticky rice.', image: img('1546228139-87f5312cac42', 800, 600), alt: 'Thai temple silhouette', tag: 'Foodie' },
+    ],
+    itinerary: THAILAND_ITINERARY,
+  },
+  {
+    id: 'cambodia',
+    name: 'Cambodia',
+    nameLocal: 'កម្ពុជា',
+    flag: '🇰🇭',
+    tagline: 'Kingdom of Wonder',
+    intro:
+      'Four days around the greatest temple city ever built — sunrise over Angkor Wat, the serene faces of the Bayon, jungle-strangled Ta Prohm, and the stilt villages of the great Tonlé Sap lake.',
+    accent: '#c0392b',
+    currencySymbol: '$',
+    currencyCode: 'USD',
+    fxPerUsd: 1,
+    motto: 'ជាតិ សាសនា ព្រះមហាក្សត្រ — Nation, Religion, King',
+    film: [
+      img('1504639650150-bf773680d8c3'),
+      img('1602649306240-b9a8b17d12c6'),
+      img('1602642977157-b7c8b8003afd'),
+      img('1653959864991-c828b72c82a8'),
+      img('1722052179738-659a771b5ff2'),
+    ],
+    highlights: [
+      { title: 'Angkor Wat', blurb: 'The largest religious monument on earth at dawn.', image: img('1504639650150-bf773680d8c3', 800, 600), alt: 'Angkor Wat at sunrise', tag: 'Wonder' },
+      { title: 'The Bayon', blurb: 'Two hundred giant serene stone faces.', image: img('1602649306240-b9a8b17d12c6', 800, 600), alt: 'Carved temple tower', tag: 'UNESCO' },
+      { title: 'Ta Prohm', blurb: 'The temple cradled by giant jungle roots.', image: img('1602642977157-b7c8b8003afd', 800, 600), alt: 'Temple among trees', tag: 'Icon' },
+      { title: 'Tonlé Sap', blurb: 'Floating villages on Southeast Asia\'s great lake.', image: img('1653959864991-c828b72c82a8', 800, 600), alt: 'Sunset over Tonlé Sap', tag: 'River Life' },
+      { title: 'Banteay Srei', blurb: 'Pink sandstone carved in astonishing detail.', image: img('1722052179738-659a771b5ff2', 800, 600), alt: 'Green field near Angkor', tag: 'Heritage' },
+      { title: 'Khmer Cuisine', blurb: 'Fish amok and Kampot-pepper crab.', image: img('1602649306240-b9a8b17d12c6', 800, 600), alt: 'Angkor temple detail', tag: 'Foodie' },
+    ],
+    itinerary: CAMBODIA_ITINERARY,
+  },
+  {
+    id: 'laos',
+    name: 'Laos',
+    nameLocal: 'ລາວ',
+    flag: '🇱🇦',
+    tagline: 'Jewel of the Mekong',
+    intro:
+      'Three unhurried days in Luang Prabang, the golden UNESCO town on the Mekong bend — dawn alms-giving, the turquoise pools of Kuang Si, riverside temples, and slow boats on the great brown river.',
+    accent: '#0e7c66',
+    currencySymbol: '₭',
+    currencyCode: 'LAK',
+    fxPerUsd: 21000,
+    motto: 'ບໍ່ເປັນຫຍັງ — bo pen nyang, no worries',
+    film: [
+      img('1628128573898-262b312f707e'),
+      img('1745331568774-cc043277ac58'),
+      img('1651670221939-2396cc2295c1'),
+      img('1633984814807-672768a6923d'),
+    ],
+    highlights: [
+      { title: 'Kuang Si Falls', blurb: 'Tiered turquoise pools in the jungle.', image: img('1745331568774-cc043277ac58', 800, 600), alt: 'Sunset over a Laos lake', tag: 'Natural Wonder' },
+      { title: 'Alms Giving', blurb: 'A dawn line of saffron monks in Luang Prabang.', image: img('1628128573898-262b312f707e', 800, 600), alt: 'Boat on the Mekong', tag: 'Culture' },
+      { title: 'The Mekong', blurb: 'Slow boats on the great brown river.', image: img('1651670221939-2396cc2295c1', 800, 600), alt: 'Boats moored on the river', tag: 'River Life' },
+      { title: 'Wat Xieng Thong', blurb: 'The finest temple in all of Laos.', image: img('1633984814807-672768a6923d', 800, 600), alt: 'A boat on a Laos lake', tag: 'Heritage' },
+      { title: 'Pak Ou Caves', blurb: 'River cliffs stuffed with retired Buddhas.', image: img('1628128573898-262b312f707e', 800, 600), alt: 'Mekong river scene', tag: 'UNESCO' },
+      { title: 'Mount Phousi', blurb: 'Sunset over the meeting of two rivers.', image: img('1745331568774-cc043277ac58', 800, 600), alt: 'Lake and mountains at dusk', tag: 'Scenic' },
+    ],
+    itinerary: LAOS_ITINERARY,
+  },
+  {
+    id: 'indonesia',
+    name: 'Indonesia',
+    nameLocal: 'Indonesia',
+    flag: '🇮🇩',
+    tagline: 'Island of the Gods',
+    intro:
+      'Four days across Bali — the rice terraces and temples of Ubud, a volcano sunrise, the surf cliffs of Uluwatu, and the wild coves of Nusa Penida, on one island of a nation of seventeen thousand.',
+    accent: '#c0392b',
+    currencySymbol: 'Rp',
+    currencyCode: 'IDR',
+    fxPerUsd: 16000,
+    motto: 'Bhinneka Tunggal Ika — unity in diversity',
+    film: [
+      img('1559628233-eb1b1a45564b'),
+      img('1682406187130-84561b4e0e78'),
+      img('1557093793-e196ae071479'),
+      img('1555400038-63f5ba517a47'),
+      img('1557093793-d149a38a1be8'),
+    ],
+    highlights: [
+      { title: 'Rice Terraces', blurb: 'The emerald subak staircases of Tegalalang.', image: img('1559628233-eb1b1a45564b', 800, 600), alt: 'Bali rice terraces', tag: 'Icon' },
+      { title: 'Uluwatu Temple', blurb: 'A sea-cliff temple and the fire-lit Kecak dance.', image: img('1557093793-e196ae071479', 800, 600), alt: 'Green Bali mountain', tag: 'Heritage' },
+      { title: 'Nusa Penida', blurb: 'The T-Rex cliff over a hidden white cove.', image: img('1555400038-63f5ba517a47', 800, 600), alt: 'Green field in Indonesia', tag: 'Beach' },
+      { title: 'Mount Batur', blurb: 'A sunrise trek up an active volcano.', image: img('1682406187130-84561b4e0e78', 800, 600), alt: 'Lush Bali hillside', tag: 'Adventure' },
+      { title: 'Ubud Culture', blurb: 'Monkey forests, temples, and Legong dance.', image: img('1557093793-d149a38a1be8', 800, 600), alt: 'Bali rice terrace', tag: 'Culture' },
+      { title: 'Balinese Cuisine', blurb: 'Babi guling and sambal matah.', image: img('1559628233-eb1b1a45564b', 800, 600), alt: 'Rice terrace aerial', tag: 'Foodie' },
+    ],
+    itinerary: INDONESIA_ITINERARY,
+  },
+  {
+    id: 'singapore',
+    name: 'Singapore',
+    nameLocal: '新加坡',
+    flag: '🇸🇬',
+    tagline: 'The Lion City',
+    intro:
+      'Three days in the gleaming city-state where four cultures meet — the Supertrees of Gardens by the Bay, Michelin-starred hawker stalls, the temples of Chinatown and Little India, and the beaches of Sentosa.',
+    accent: '#c0392b',
+    currencySymbol: 'S$',
+    currencyCode: 'SGD',
+    fxPerUsd: 1.35,
+    motto: 'Majulah Singapura — onward, Singapore',
+    film: [
+      img('1525625293386-3f8f99389edd'),
+      img('1496939376851-89342e90adcd'),
+      img('1569288063643-5d29ad64df09'),
+      img('1516422641841-cd9803ab02c6'),
+      img('1628221680019-f28a2716e727'),
+    ],
+    highlights: [
+      { title: 'Gardens by the Bay', blurb: 'The Supertree Grove and Cloud Forest dome.', image: img('1525625293386-3f8f99389edd', 800, 600), alt: 'Marina Bay Sands and gardens', tag: 'Icon' },
+      { title: 'Marina Bay Sands', blurb: 'The ship-shaped SkyPark over the skyline.', image: img('1569288063643-5d29ad64df09', 800, 600), alt: 'Marina Bay Sands hotel', tag: 'Modern' },
+      { title: 'Hawker Centres', blurb: 'Michelin chicken rice, laksa, and chilli crab.', image: img('1496939376851-89342e90adcd', 800, 600), alt: 'Singapore riverfront', tag: 'Foodie' },
+      { title: 'Chinatown', blurb: 'Temples, red lanterns, and old shophouses.', image: img('1516422641841-cd9803ab02c6', 800, 600), alt: 'City building at night', tag: 'Culture' },
+      { title: 'Sentosa Island', blurb: 'Beaches, cable cars, and a vast aquarium.', image: img('1628221680019-f28a2716e727', 800, 600), alt: 'Aerial city view', tag: 'Beach' },
+      { title: 'Skyline by Night', blurb: 'The Spectra light show across the bay.', image: img('1525625293386-3f8f99389edd', 800, 600), alt: 'Marina Bay at dusk', tag: 'Icon' },
+    ],
+    itinerary: SINGAPORE_ITINERARY,
+  },
+  {
+    id: 'philippines',
+    name: 'Philippines',
+    nameLocal: 'Pilipinas',
+    flag: '🇵🇭',
+    tagline: 'The Pearl of the Orient Sea',
+    intro:
+      'Four days in Palawan, the last frontier — the lagoons of El Nido, island-hopping across Bacuit Bay, the shipwrecks and hidden lakes of Coron, in an archipelago of seven thousand islands.',
+    accent: '#1e6fbf',
+    currencySymbol: '₱',
+    currencyCode: 'PHP',
+    fxPerUsd: 58,
+    motto: 'Maka-Diyos, Maka-Tao, Makakalikasan — for God, people, and nature',
+    film: [
+      img('1697135756100-7b610c8fe92e'),
+      img('1697473259118-473211915531'),
+      img('1763581616094-c1b4097972d4'),
+      img('1771533679967-1b6f3a10be02'),
+    ],
+    highlights: [
+      { title: 'El Nido Lagoons', blurb: 'Jade water walled by soaring limestone.', image: img('1697135756100-7b610c8fe92e', 800, 600), alt: 'Boats in El Nido', tag: 'Icon' },
+      { title: 'Bacuit Bay', blurb: 'Island-hopping by outrigger bangka.', image: img('1697473259118-473211915531', 800, 600), alt: 'Karst islands in Palawan', tag: 'Island' },
+      { title: 'Coron Wrecks', blurb: 'WWII shipwrecks in clear shallow water.', image: img('1763581616094-c1b4097972d4', 800, 600), alt: 'Aerial of a lagoon', tag: 'Adventure' },
+      { title: 'Kayangan Lake', blurb: '"The cleanest lake in the Philippines."', image: img('1771533679967-1b6f3a10be02', 800, 600), alt: 'Jagged green islands', tag: 'Natural Wonder' },
+      { title: 'Hidden Beaches', blurb: 'Castaway coves reached only by boat.', image: img('1697135756100-7b610c8fe92e', 800, 600), alt: 'Boats on blue water', tag: 'Beach' },
+      { title: 'Filipino Feasts', blurb: 'Kinilaw, sinigang, and grilled seafood.', image: img('1697473259118-473211915531', 800, 600), alt: 'Palawan islands', tag: 'Foodie' },
+    ],
+    itinerary: PHILIPPINES_ITINERARY,
+  },
+  {
+    id: 'malaysia',
+    name: 'Malaysia',
+    nameLocal: 'Malaysia',
+    flag: '🇲🇾',
+    tagline: 'Truly Asia',
+    intro:
+      'Four days from the Twin Towers and Batu Caves of Kuala Lumpur to the heritage streets and legendary food of George Town, Penang — a Malay, Chinese, and Indian melting pot.',
+    accent: '#9e1b1b',
+    currencySymbol: 'RM',
+    currencyCode: 'MYR',
+    fxPerUsd: 4.5,
+    motto: 'Bersekutu Bertambah Mutu — unity is strength',
+    film: [
+      img('1506320775314-84c60bff00ff'),
+      img('1597148543182-830ef7bbb904'),
+      img('1569878698898-3d112b16d123'),
+      img('1585031039436-16a906da2f05'),
+      img('1585835310560-5b850cc2b771'),
+    ],
+    highlights: [
+      { title: 'Petronas Towers', blurb: 'The silver twin towers that define KL.', image: img('1506320775314-84c60bff00ff', 800, 600), alt: 'Petronas Twin Towers', tag: 'Icon' },
+      { title: 'Batu Caves', blurb: 'A golden deity and 272 rainbow steps.', image: img('1597148543182-830ef7bbb904', 800, 600), alt: 'KL skyline at night', tag: 'Heritage' },
+      { title: 'George Town', blurb: 'Street art and heritage clan jetties in Penang.', image: img('1585031039436-16a906da2f05', 800, 600), alt: 'Malaysian street scene', tag: 'UNESCO' },
+      { title: 'Penang Food', blurb: 'The finest char kway teow and assam laksa.', image: img('1585835310560-5b850cc2b771', 800, 600), alt: 'City buildings by day', tag: 'Foodie' },
+      { title: 'KL Skyline', blurb: 'Rooftop bars among the skyscrapers.', image: img('1569878698898-3d112b16d123', 800, 600), alt: 'Petronas towers view', tag: 'Modern' },
+      { title: 'Penang Hill', blurb: 'A funicular to the cool green summit.', image: img('1506320775314-84c60bff00ff', 800, 600), alt: 'Twin towers detail', tag: 'Scenic' },
+    ],
+    itinerary: MALAYSIA_ITINERARY,
+  },
 ]
+
+// ─── Per-country metadata: timezone, specialty icons, map position ────────
+
+interface Specialty {
+  icon: string
+  label: string
+}
+
+interface CountryMeta {
+  tz: string
+  specialties: Specialty[]
+  map: { x: number; y: number }
+}
+
+const COUNTRY_META: Record<string, CountryMeta> = {
+  japan: {
+    tz: 'Asia/Tokyo',
+    specialties: [
+      { icon: '🍣', label: 'Sushi' },
+      { icon: '⛩️', label: 'Torii' },
+      { icon: '🗻', label: 'Mt Fuji' },
+      { icon: '🌸', label: 'Sakura' },
+    ],
+    map: { x: 90, y: 14 },
+  },
+  china: {
+    tz: 'Asia/Shanghai',
+    specialties: [
+      { icon: '🥟', label: 'Dumplings' },
+      { icon: '🧱', label: 'Great Wall' },
+      { icon: '🐼', label: 'Panda' },
+      { icon: '🍵', label: 'Tea' },
+    ],
+    map: { x: 58, y: 8 },
+  },
+  laos: {
+    tz: 'Asia/Vientiane',
+    specialties: [
+      { icon: '🍚', label: 'Sticky rice' },
+      { icon: '💦', label: 'Kuang Si' },
+      { icon: '🧡', label: 'Alms' },
+      { icon: '🛶', label: 'Mekong' },
+    ],
+    map: { x: 47, y: 34 },
+  },
+  vietnam: {
+    tz: 'Asia/Ho_Chi_Minh',
+    specialties: [
+      { icon: '🍜', label: 'Pho' },
+      { icon: '🛶', label: 'Ha Long' },
+      { icon: '☕', label: 'Egg coffee' },
+      { icon: '🏮', label: 'Lanterns' },
+    ],
+    map: { x: 57, y: 44 },
+  },
+  thailand: {
+    tz: 'Asia/Bangkok',
+    specialties: [
+      { icon: '🍤', label: 'Pad Thai' },
+      { icon: '🛕', label: 'Wat Arun' },
+      { icon: '🐘', label: 'Elephant' },
+      { icon: '🏝️', label: 'Islands' },
+    ],
+    map: { x: 41, y: 42 },
+  },
+  cambodia: {
+    tz: 'Asia/Phnom_Penh',
+    specialties: [
+      { icon: '🛕', label: 'Angkor' },
+      { icon: '🐟', label: 'Fish amok' },
+      { icon: '🌾', label: 'Tonlé Sap' },
+      { icon: '💃', label: 'Apsara' },
+    ],
+    map: { x: 51, y: 53 },
+  },
+  philippines: {
+    tz: 'Asia/Manila',
+    specialties: [
+      { icon: '🍲', label: 'Adobo' },
+      { icon: '🏝️', label: 'El Nido' },
+      { icon: '🤿', label: 'Wrecks' },
+      { icon: '🥥', label: 'Coconut' },
+    ],
+    map: { x: 74, y: 50 },
+  },
+  malaysia: {
+    tz: 'Asia/Kuala_Lumpur',
+    specialties: [
+      { icon: '🏙️', label: 'Twin Towers' },
+      { icon: '🍜', label: 'Laksa' },
+      { icon: '🕌', label: 'Batu Caves' },
+      { icon: '🍢', label: 'Satay' },
+    ],
+    map: { x: 44, y: 64 },
+  },
+  singapore: {
+    tz: 'Asia/Singapore',
+    specialties: [
+      { icon: '🦁', label: 'Merlion' },
+      { icon: '🌳', label: 'Supertrees' },
+      { icon: '🦀', label: 'Chilli crab' },
+      { icon: '🍜', label: 'Laksa' },
+    ],
+    map: { x: 48, y: 72 },
+  },
+  indonesia: {
+    tz: 'Asia/Makassar',
+    specialties: [
+      { icon: '🌾', label: 'Rice terrace' },
+      { icon: '🌋', label: 'Batur' },
+      { icon: '🏄', label: 'Surf' },
+      { icon: '🐒', label: 'Monkey forest' },
+    ],
+    map: { x: 58, y: 84 },
+  },
+}
+
+// ─── Flip-card stories, keyed `${countryId}:${highlight title}` ───────────
+
+const STORIES: Record<string, string> = {
+  // Japan
+  'japan:Fushimi Inari': 'Each of the ten thousand gates was donated by a business praying for prosperity — read the names carved on the back as you climb.',
+  'japan:Mount Fuji': 'Still an active volcano, Fuji last erupted in 1707 and has been climbed by pilgrims for over a thousand years.',
+  'japan:teamLab Digital Art': 'The artworks are not fixed — they respond to your presence, so no two visitors ever see the same room twice.',
+  'japan:Shirakawa-go': 'The steep thatched roofs, built without a single nail, are angled to shrug off metres of winter snow.',
+  'japan:Miyajima Torii': 'At high tide the great gate seems to float; at low tide you can walk out and press a coin into its barnacled legs for luck.',
+  'japan:Osaka Street Food': 'Osakans greet each other with "have you eaten well?" — the city\'s motto is kuidaore, to eat yourself to ruin.',
+  // China
+  'china:The Great Wall': 'Not one wall but many, built over two thousand years — end to end it would stretch more than halfway around the planet.',
+  'china:Forbidden City': 'For five centuries commoners entered on pain of death; today its 9,000 rooms hold the world\'s largest collection of preserved wooden architecture.',
+  'china:Terracotta Army': 'A farmer digging a well found them in 1974 — each of the 8,000 soldiers has a unique face, thought to be modelled on real men.',
+  'china:Zhangjiajie': 'The 3,000 quartzite pillars so awed the makers of Avatar that they renamed one the "Hallelujah Mountain".',
+  'china:Li River': 'This exact stretch of karst and river is printed on the back of the 20-yuan note — hold one up and compare.',
+  'china:Giant Pandas': 'A panda spends up to 14 hours a day eating bamboo, yet its gut is that of a carnivore — evolution\'s odd compromise.',
+  // Vietnam
+  'vietnam:Ha Long Bay': 'Legend says a dragon sent by the gods spat out jewels that became these islands, walling the coast against invaders.',
+  'vietnam:Hoi An Lanterns': 'On the full-moon night each month the town cuts its electric lights, and the old streets glow only by silk lantern.',
+  'vietnam:Sapa Terraces': 'The Hmong and Dao peoples have farmed these staircases for centuries, moving water field to field by hand-cut channels.',
+  'vietnam:Golden Bridge': 'The two giant hands that cradle the walkway were built to look weathered and ancient — they are barely a decade old.',
+  'vietnam:Street Food': 'Hanoi\'s egg coffee was born of a 1940s milk shortage — a bartender whipped yolk and sugar into a silky cloud instead.',
+  'vietnam:Mekong Delta': 'Wholesalers on the floating markets hang a sample of their wares from a tall pole so buyers can spot them across the water.',
+  // Thailand
+  'thailand:Wat Arun': 'Its spire is encrusted with broken Chinese porcelain — ballast from trading ships, turned into shimmering mosaic.',
+  'thailand:Phi Phi Islands': 'Maya Bay was closed for years to let its reefs recover; visitors now anchor offshore to protect the returning blacktip sharks.',
+  'thailand:Floating Markets': 'Before roads, the khlongs were the highways — vendors still cook full meals from charcoal stoves in their narrow boats.',
+  'thailand:Chiang Mai Temples': 'Doi Suthep\'s temple marks the spot where, legend says, a white elephant carrying a relic climbed the hill, trumpeted thrice, and died.',
+  'thailand:Andaman Beaches': 'The limestone karsts are ancient coral reefs, lifted from the sea floor and sculpted by rain into their dramatic overhangs.',
+  'thailand:Street Food': 'Bangkok was once ranked the world\'s best street-food city — a single soup vendor here has held a Michelin star since 2018.',
+  // Cambodia
+  'cambodia:Angkor Wat': 'Built as a Hindu temple to Vishnu, it faces west — toward the setting sun and the realm of the dead — unlike almost every other temple here.',
+  'cambodia:The Bayon': 'The 200 faces are thought to be the king himself blended with a bodhisattva — wherever you stand, one is always watching you.',
+  'cambodia:Ta Prohm': 'Archaeologists deliberately left the strangler figs in place, a rare monument left to the embrace of the jungle.',
+  'cambodia:Tonlé Sap': 'Each monsoon the lake\'s river reverses direction and it swells fivefold — the villages simply float up with the rising water.',
+  'cambodia:Banteay Srei': 'Its carvings are so fine and deep they were long believed to be the work of women — hence its name, the Citadel of Women.',
+  'cambodia:Khmer Cuisine': 'Fish amok is steamed in a banana-leaf cup until it sets like a savoury custard, perfumed with kroeung and coconut.',
+  // Laos
+  'laos:Kuang Si Falls': 'The water\'s dreamlike blue comes from dissolved limestone (travertine), which also builds the natural terraces pool by pool.',
+  'laos:Alms Giving': 'Before dawn, hundreds of barefoot monks walk in silence to receive sticky rice — give with respect, and never stand above them.',
+  'laos:The Mekong': 'The "mother of waters" runs 4,900km through six countries; the two-day slow boat to Luang Prabang is a rite of passage.',
+  'laos:Wat Xieng Thong': 'Its "tree of life" mosaic and low, sweeping roofs are the masterpiece of classic Luang Prabang temple style.',
+  'laos:Pak Ou Caves': 'For centuries pilgrims left unwanted Buddha statues here rather than destroy them — now over 4,000 crowd the river cliffs.',
+  'laos:Mount Phousi': 'The 328 steps pass a gilded stupa and a Buddha footprint before the payoff: sunset over the meeting of the Mekong and Nam Khan.',
+  // Indonesia
+  'indonesia:Rice Terraces': 'The subak irrigation system, run cooperatively by farmers for over a thousand years, is a UNESCO-listed philosophy as much as a technique.',
+  'indonesia:Uluwatu Temple': 'Perched on a 70m sea cliff, it is guarded by a troop of monkeys notorious for stealing sunglasses — and bartering them back for fruit.',
+  'indonesia:Nusa Penida': 'The famous Kelingking cliff is said to resemble a T-Rex; the turquoise cove at its foot takes 400 steep steps to reach.',
+  'indonesia:Mount Batur': 'Trekkers climb by torchlight to reach the 1,717m rim for sunrise, then breakfast on eggs cooked in the volcano\'s own steam.',
+  'indonesia:Ubud Culture': 'Bali runs on a 210-day ritual calendar — on any given day, somewhere a temple is dressed in gold for an anniversary.',
+  'indonesia:Balinese Cuisine': 'Babi guling, a whole spit-roast pig stuffed with turmeric and lemongrass, was once reserved for temple offerings and feasts.',
+  // Singapore
+  'singapore:Gardens by the Bay': 'The Supertrees are living vertical gardens that harvest solar power and rainwater — and vent heat for the cooled conservatories nearby.',
+  'singapore:Marina Bay Sands': 'The rooftop infinity pool, three football fields up, sits on a deck cantilevered further than any other in the world.',
+  'singapore:Hawker Centres': 'Singapore\'s hawker culture is UNESCO-listed; two stalls here were the first street food anywhere to earn a Michelin star.',
+  'singapore:Chinatown': 'The Buddha Tooth Relic Temple houses what is said to be a tooth of the Buddha, in a two-ton solid-gold stupa.',
+  'singapore:Sentosa Island': 'The name means "peace and tranquility" — a gentle rebrand for an island that once held a British coastal fort and a WWII prison.',
+  'singapore:Skyline by Night': 'The nightly Spectra show choreographs water jets, lasers, and orchestral music across the bay — and it is entirely free.',
+  // Philippines
+  'philippines:El Nido Lagoons': 'The towering karst is 250-million-year-old limestone; kayaks slip into lagoons through gaps that vanish at high tide.',
+  'philippines:Bacuit Bay': 'The outrigger bangka boat, with its bamboo stabilisers, is a design little changed since the first Austronesian seafarers.',
+  'philippines:Coron Wrecks': 'A dozen Japanese WWII ships sunk in a 1944 air raid now lie in clear shallow water, reborn as coral gardens.',
+  'philippines:Kayangan Lake': 'Often called the cleanest lake in the country, its brackish water is a startling mix of fresh spring and seeping sea.',
+  'philippines:Hidden Beaches': 'Many of Palawan\'s finest coves have no road at all — the only way in is by boat, and the only footprints are the tide\'s.',
+  'philippines:Filipino Feasts': 'Adobo — meat braised in vinegar, soy, and garlic — was a way to preserve food in the tropics long before refrigeration.',
+  // Malaysia
+  'malaysia:Petronas Towers': 'The world\'s tallest twins were built by two rival crews racing floor for floor — and joined 170m up by a double-decker skybridge.',
+  'malaysia:Batu Caves': 'The 42m golden statue of Murugan guards 272 steps, repainted in rainbow colours in 2018 to the dismay and delight of purists.',
+  'malaysia:George Town': 'Lithuanian artist Ernest Zacharevic\'s 2012 wall murals turned the old port into an open-air gallery almost overnight.',
+  'malaysia:Penang Food': 'Penangites will happily drive an hour and queue an hour more for the "right" stall — the char kway teow rivalry is deadly serious.',
+  'malaysia:KL Skyline': 'The Heli Lounge bar is a working helipad by day and a railing-free rooftop bar by night — the city at your feet, quite literally.',
+  'malaysia:Penang Hill': 'The funicular, opened in 1923, climbs so steeply through the jungle that a cool colonial hill station sits at the top, 800m up.',
+}
 
 function formatMoney(amount: number, c: Country) {
   return `${c.currencySymbol}${amount.toLocaleString('en-US')}`
@@ -1149,47 +1940,262 @@ function FilmModal({ country, onClose }: { country: Country; onClose: () => void
   )
 }
 
-// ─── Highlights ─────────────────────────────────────────────────────────
+// ─── Highlights — interactive flip cards ─────────────────────────────────
+
+function FlipCard({ country, h }: { country: Country; h: Highlight }) {
+  const [flipped, setFlipped] = useState(false)
+  const story = STORIES[`${country.id}:${h.title}`] ?? h.blurb
+
+  return (
+    <div className="flip aspect-[4/3]">
+      <button
+        type="button"
+        onClick={() => setFlipped((f) => !f)}
+        aria-label={`${h.title} — tap to flip`}
+        className={`flip-inner block w-full text-left focus:outline-none ${flipped ? 'is-flipped' : ''}`}
+        style={{ height: '100%' }}
+      >
+        {/* Front — image + name */}
+        <span className="flip-face group block border border-[var(--color-border)] bg-[var(--color-muted)]">
+          <img src={h.image} alt={h.alt} className="h-full w-full object-cover" />
+          <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+          <span className="absolute left-2 top-2 rounded-sm bg-[var(--color-primary)] px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--color-primary-foreground)]">
+            {h.tag}
+          </span>
+          <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-white/20 text-[11px] text-white backdrop-blur-sm">
+            ↻
+          </span>
+          <span className="absolute bottom-0 left-0 right-0 p-3">
+            <span className="block font-display text-base font-600 leading-tight text-white">{h.title}</span>
+            <span className="mt-0.5 block font-body text-xs leading-snug text-white/80">{h.blurb}</span>
+          </span>
+        </span>
+
+        {/* Back — the short story */}
+        <span
+          className="flip-face flip-back flex flex-col justify-between border p-4"
+          style={{ background: country.accent, borderColor: country.accent }}
+        >
+          <span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-white/70">{h.tag} · story</span>
+            <span className="mt-1.5 block font-display text-sm font-600 leading-tight text-white">{h.title}</span>
+          </span>
+          <span className="block font-body text-[13px] leading-relaxed text-white/90">{story}</span>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-white/60">↻ tap to flip back</span>
+        </span>
+      </button>
+    </div>
+  )
+}
 
 function Highlights({ country }: { country: Country }) {
   return (
     <section className="mb-10">
       <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="font-display text-2xl font-600 tracking-tight">Signature Experiences</h2>
+        <h2 className="font-display text-2xl font-600 tracking-tight">Specialties &amp; Heritage</h2>
         <span className="font-mono text-xs uppercase tracking-widest text-[var(--color-muted-foreground)]">
-          {country.highlights.length} must-sees
+          Tap a card for its story
         </span>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {country.highlights.map((h) => (
-          <article
-            key={h.title}
-            className="group relative overflow-hidden border border-[var(--color-border)] bg-[var(--color-muted)]"
-          >
-            <div className="relative aspect-[4/3] overflow-hidden">
-              <img
-                src={h.image}
-                alt={h.alt}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-              <span className="absolute left-2 top-2 rounded-sm bg-[var(--color-primary)] px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--color-primary-foreground)]">
-                {h.tag}
-              </span>
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <h3 className="font-display text-base font-600 leading-tight text-white">{h.title}</h3>
-                <p className="mt-0.5 font-body text-xs leading-snug text-white/80">{h.blurb}</p>
-              </div>
-            </div>
-          </article>
+          <FlipCard key={h.title} country={country} h={h} />
         ))}
       </div>
     </section>
   )
 }
 
+// ─── Live local time for the selected country ─────────────────────────────
+
+function LocalTime({ country }: { country: Country }) {
+  const meta = COUNTRY_META[country.id]
+  const tz = meta?.tz ?? 'UTC'
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const dtf = (opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('en-US', { timeZone: tz, ...opts }).format(now)
+
+  const weekday = dtf({ weekday: 'long' })
+  const day = dtf({ day: '2-digit' })
+  const month = dtf({ month: 'long' })
+  const year = dtf({ year: 'numeric' })
+  const time = dtf({ hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  const offset = dtf({ timeZoneName: 'shortOffset' }).split(' ').pop()
+
+  return (
+    <section className="mb-8 flex flex-col gap-4 border border-[var(--color-border)] bg-[var(--color-card)] p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl leading-none">{country.flag}</span>
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-muted-foreground)]">
+            Local time in {country.name}
+          </div>
+          <div className="font-display text-lg font-600 leading-tight">
+            {weekday}
+          </div>
+          <div className="font-body text-sm text-[var(--color-muted-foreground)]">
+            {day} {month} {year}
+          </div>
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="font-mono text-4xl font-500 tabular-nums leading-none text-[var(--color-primary)]">
+          {time}
+        </div>
+        <div className="mt-1 font-mono text-[11px] uppercase tracking-widest text-[var(--color-muted-foreground)]">
+          {meta?.tz.replace('Asia/', '').replace('_', ' ')} · {offset}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Stylized Southeast Asia region map ───────────────────────────────────
+
+function RegionMap({
+  countries,
+  activeId,
+  onSelect,
+}: {
+  countries: Country[]
+  activeId: string
+  onSelect: (id: string) => void
+}) {
+  const [hovered, setHovered] = useState<string | null>(null)
+
+  return (
+    <section className="mb-8">
+      <div className="mb-4 flex items-baseline justify-between">
+        <h2 className="font-display text-2xl font-600 tracking-tight">Choose Your Destination</h2>
+        <span className="font-mono text-xs uppercase tracking-widest text-[var(--color-muted-foreground)]">
+          Hover to preview · click to fly
+        </span>
+      </div>
+
+      <div
+        className="relative w-full overflow-hidden rounded-lg border border-[var(--color-border)]"
+        style={{
+          aspectRatio: '16 / 9',
+          background:
+            'radial-gradient(120% 100% at 30% 10%, #1b3a4b 0%, #14232e 55%, #0d181f 100%)',
+        }}
+      >
+        {/* Decorative "sea" grid + latitude lines */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage:
+              'linear-gradient(#7fd7c4 1px, transparent 1px), linear-gradient(90deg, #7fd7c4 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+          }}
+        />
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-white/10" />
+
+        {/* Flight paths from the active country to hovered */}
+        <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+          {countries.map((c) => {
+            const from = COUNTRY_META[activeId]?.map
+            const to = COUNTRY_META[c.id]?.map
+            if (!from || !to || c.id === activeId) return null
+            const dim = hovered && hovered !== c.id
+            return (
+              <line
+                key={c.id}
+                x1={`${from.x}%`}
+                y1={`${from.y}%`}
+                x2={`${to.x}%`}
+                y2={`${to.y}%`}
+                stroke="white"
+                strokeWidth={hovered === c.id ? 1.5 : 0.6}
+                strokeDasharray="3 5"
+                opacity={hovered === c.id ? 0.55 : dim ? 0.05 : 0.14}
+              />
+            )
+          })}
+        </svg>
+
+        {/* Country pins */}
+        {countries.map((c) => {
+          const meta = COUNTRY_META[c.id]
+          if (!meta) return null
+          const active = c.id === activeId
+          const isHover = hovered === c.id
+          return (
+            <div
+              key={c.id}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${meta.map.x}%`, top: `${meta.map.y}%`, zIndex: isHover ? 30 : active ? 20 : 10 }}
+              onMouseEnter={() => setHovered(c.id)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <button
+                type="button"
+                onClick={() => onSelect(c.id)}
+                aria-label={`Fly to ${c.name}`}
+                className="group relative grid place-items-center focus:outline-none"
+              >
+                {/* Ping ring for the active country */}
+                {active && (
+                  <span
+                    className="map-ping absolute h-6 w-6 rounded-full"
+                    style={{ background: c.accent }}
+                  />
+                )}
+                {/* Pin dot */}
+                <span
+                  className={`relative flex items-center gap-1 rounded-full border px-2 py-1 backdrop-blur-sm transition-all duration-200 ${
+                    isHover || active ? 'scale-110' : 'scale-100'
+                  }`}
+                  style={{
+                    background: active ? c.accent : 'rgba(255,255,255,0.1)',
+                    borderColor: active ? c.accent : 'rgba(255,255,255,0.35)',
+                  }}
+                >
+                  <span className="text-sm leading-none">{c.flag}</span>
+                  <span className="font-mono text-[10px] font-500 text-white">{c.name}</span>
+                </span>
+              </button>
+
+              {/* Specialty popover on hover */}
+              {isHover && (
+                <div className="tick-in absolute left-1/2 top-full z-40 mt-2 w-44 -translate-x-1/2 rounded-lg border border-white/15 bg-black/85 p-3 shadow-xl backdrop-blur-md">
+                  <div className="mb-2 font-mono text-[9px] uppercase tracking-[0.25em] text-white/60">
+                    {c.tagline}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {meta.specialties.map((s) => (
+                      <div key={s.label} className="flex items-center gap-1.5">
+                        <span className="text-base leading-none">{s.icon}</span>
+                        <span className="font-body text-[11px] leading-tight text-white/85">{s.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 border-t border-white/10 pt-1.5 text-center font-mono text-[9px] uppercase tracking-widest text-white/50">
+                    Click to fly →
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {/* Corner label */}
+        <div className="pointer-events-none absolute left-3 top-3 font-mono text-[10px] uppercase tracking-[0.3em] text-white/40">
+          Asia · The Grand Tour
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function BudgetBar({ country }: { country: Country }) {
-  const allActivities = country.itinerary.flatMap((d) => d.activities)
+  const allActivities = (country.itinerary ?? []).flatMap((d) => d.activities)
   const total = allActivities.reduce((sum, a) => sum + a.cost, 0)
 
   const byCategory = (Object.keys(CATEGORY_LABELS) as Activity['category'][]).map((cat) => {
@@ -1351,7 +2357,7 @@ function CountryTabs({ countries, activeId, onSelect }: { countries: Country[]; 
           >
             <span className="text-base leading-none">{c.flag}</span>
             {c.name}
-            <span className="font-mono text-[10px] font-400 opacity-60">{c.itinerary.length}d</span>
+            <span className="font-mono text-[10px] font-400 opacity-60">{(c.itinerary?.length ?? 0)}d</span>
           </button>
         )
       })}
@@ -1364,15 +2370,33 @@ export default function App() {
   const [countryId, setCountryId] = useState(COUNTRIES[0].id)
   const [activeDay, setActiveDay] = useState(0)
   const [showFilm, setShowFilm] = useState(false)
+  const [muted, setMuted] = useState(false)
+  const [sweep, setSweep] = useState<{ id: string; x: number; y: number } | null>(null)
 
   const country = COUNTRIES.find((c) => c.id === countryId) ?? COUNTRIES[0]
-  const grandTotal = country.itinerary.flatMap((d) => d.activities).reduce((s, a) => s + a.cost, 0)
-  const dateRange = `${country.itinerary[0].date} – ${country.itinerary[country.itinerary.length - 1].date}`
+  const itinerary = country.itinerary ?? []
+  const grandTotal = itinerary.flatMap((d) => d.activities).reduce((s, a) => s + a.cost, 0)
+
+  const startExperience = () => {
+    setLoading(false)
+    startMusic()
+  }
+
+  const toggleMute = () => {
+    const next = !muted
+    setMuted(next)
+    setMusicMuted(next)
+  }
 
   const selectCountry = (id: string) => {
+    if (id === countryId) return
+    const map = COUNTRY_META[id]?.map
+    if (map) setSweep({ id, x: map.x, y: map.y })
     setCountryId(id)
     setActiveDay(0)
     setShowFilm(false)
+    // Scroll the traveler up to the top of the newly-arrived country.
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60)
   }
 
   return (
@@ -1380,26 +2404,49 @@ export default function App() {
       className="min-h-screen bg-[var(--color-background)]"
       style={{ ['--color-primary' as string]: country.accent, ['--color-accent' as string]: country.accent, ['--color-ring' as string]: country.accent }}
     >
-      {loading && <LoadingScreen onDone={() => setLoading(false)} />}
+      {loading && <LoadingScreen onDone={startExperience} montage={COUNTRIES.map((c) => c.film[0])} />}
       {showFilm && <FilmModal country={country} onClose={() => setShowFilm(false)} />}
 
+      {/* Fly-to-country sweep overlay */}
+      {sweep && (
+        <div className="pointer-events-none fixed inset-0 z-40" onAnimationEnd={() => setSweep(null)}>
+          <div
+            className="fly-sweep absolute h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              left: `${sweep.x}%`,
+              top: `${sweep.y}%`,
+              background: `radial-gradient(circle, ${country.accent}cc 0%, transparent 70%)`,
+            }}
+          />
+        </div>
+      )}
+
       {/* Header */}
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-card)] sticky top-0 z-20">
+      <header className="border-b border-[var(--color-border)] bg-[var(--color-card)] sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between py-3">
             <div>
               <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase">The Grand Tour</div>
               <h1 className="font-display text-xl font-600 leading-tight">
-                Asia <span className="italic font-300">in Three Chapters</span>
+                The Asia <span className="italic font-300">Grand Tour</span>
               </h1>
             </div>
-            <div className="text-right">
-              <div className="font-mono text-xs text-[var(--color-muted-foreground)]">
-                {country.name} · {dateRange}
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="font-mono text-xs text-[var(--color-muted-foreground)]">{country.name}</div>
+                <div className="font-mono text-sm font-500 text-[var(--color-primary)]">
+                  {formatMoney(grandTotal, country)} · ≈ ${toUsd(grandTotal, country).toLocaleString('en-US')}
+                </div>
               </div>
-              <div className="font-mono text-sm font-500 text-[var(--color-primary)]">
-                {formatMoney(grandTotal, country)} · ≈ ${toUsd(grandTotal, country).toLocaleString('en-US')}
-              </div>
+              <button
+                type="button"
+                onClick={toggleMute}
+                aria-label={muted ? 'Unmute music' : 'Mute music'}
+                title={muted ? 'Unmute music' : 'Mute music'}
+                className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-base transition-colors hover:bg-[var(--color-muted)]"
+              >
+                {muted ? '🔇' : '🎵'}
+              </button>
             </div>
           </div>
           <CountryTabs countries={COUNTRIES} activeId={countryId} onSelect={selectCountry} />
@@ -1407,39 +2454,48 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
-        {/* Cinematic intro film */}
-        <IntroFilm country={country} onOpen={() => setShowFilm(true)} />
+        {/* Stylized region map — choose a destination */}
+        <RegionMap countries={COUNTRIES} activeId={countryId} onSelect={selectCountry} />
 
-        {/* Signature experiences */}
-        <Highlights country={country} />
+        {/* Everything below "flies in" when the country changes */}
+        <div key={country.id} className="fly-in">
+          {/* Cinematic intro film */}
+          <IntroFilm country={country} onOpen={() => setShowFilm(true)} />
 
-        {/* Budget bar */}
-        <BudgetBar country={country} />
+          {/* Live local time */}
+          <LocalTime country={country} />
 
-        {/* Day nav + detail */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-          {/* Day selector */}
-          <aside>
-            <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase mb-3">
-              {country.name} Itinerary
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
-              {country.itinerary.map((day, i) => (
-                <DayCard
-                  key={day.day}
-                  day={day}
-                  country={country}
-                  isActive={i === activeDay}
-                  onClick={() => setActiveDay(i)}
-                />
-              ))}
-            </div>
-          </aside>
+          {/* Specialties & heritage flip cards */}
+          <Highlights country={country} />
 
-          {/* Day detail */}
-          <section>
-            <DayDetail day={country.itinerary[activeDay]} country={country} />
-          </section>
+          {/* Budget bar */}
+          <BudgetBar country={country} />
+
+          {/* Day nav + detail */}
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+            {/* Day selector */}
+            <aside>
+              <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase mb-3">
+                {country.name} Itinerary
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                {itinerary.map((day, i) => (
+                  <DayCard
+                    key={day.day}
+                    day={day}
+                    country={country}
+                    isActive={i === activeDay}
+                    onClick={() => setActiveDay(i)}
+                  />
+                ))}
+              </div>
+            </aside>
+
+            {/* Day detail */}
+            <section>
+              {itinerary[activeDay] && <DayDetail day={itinerary[activeDay]} country={country} />}
+            </section>
+          </div>
         </div>
       </main>
 
