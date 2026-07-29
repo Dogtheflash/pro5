@@ -6957,8 +6957,6 @@ export default function App() {
   const selectCountry = (id: string) => {
     if (id === countryId) return
     setCountryId(id)
-    // Arriving in a country switches the interface into that country's language.
-    changeLang(COUNTRY_LANG[id] ?? 'en')
     setActiveDay(0)
     setShowFilm(false)
     // Scroll the traveler up to the top of the newly-arrived country.
