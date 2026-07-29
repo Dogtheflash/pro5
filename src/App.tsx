@@ -6269,9 +6269,227 @@ const useCountryTheme = () => useContext(CountryThemeContext)
 // blurred and darkened for legibility, with a faint accent pattern on top.
 // ─── Discover Vietnam — Journeys & Flavors From Every Region ─────────────────
 
+// ─── Interactive Specialty Cart Drawer ─────────────────────────────────────
+
+interface CartItem {
+  id: string
+  name: string
+  country: string
+  flag: string
+  priceUsd: number
+  qty: number
+}
+
+function SpecialtyCartDrawer({
+  cart,
+  onUpdateQty,
+  onRemove,
+  onClose,
+}: {
+  cart: CartItem[]
+  onUpdateQty: (id: string, delta: number) => void
+  onRemove: (id: string) => void
+  onClose: () => void
+}) {
+  const [checkedOut, setCheckedOut] = useState(false)
+  const totalUsd = cart.reduce((sum, item) => sum + item.priceUsd * item.qty, 0)
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-[var(--color-card)] border-l border-[var(--color-border)] h-full flex flex-col p-6 shadow-2xl overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 mb-4">
+          <div className="flex items-center gap-2 font-display text-xl font-600">
+            <span>🛒</span>
+            <span>Specialty Basket</span>
+            <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)] text-white">
+              {cart.reduce((s, i) => s + i.qty, 0)}
+            </span>
+          </div>
+          <button onClick={onClose} className="text-xl text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] cursor-pointer">✕</button>
+        </div>
+
+        {checkedOut ? (
+          <div className="my-auto text-center p-6 space-y-4">
+            <div className="text-5xl animate-bounce">📦</div>
+            <h3 className="font-carve text-2xl">Order Confirmed!</h3>
+            <p className="font-body text-sm text-[var(--color-muted-foreground)]">
+              Thank you for supporting regional farmers and artisans across Southeast Asia! Your specialty basket is being packed at origin.
+            </p>
+            <button
+              onClick={() => { setCheckedOut(false); onClose(); }}
+              className="px-6 py-2.5 rounded-full font-mono text-xs uppercase bg-[var(--color-primary)] text-white cursor-pointer"
+            >
+              Continue Journey
+            </button>
+          </div>
+        ) : cart.length === 0 ? (
+          <div className="my-auto text-center py-12 text-[var(--color-muted-foreground)] space-y-3 font-mono text-xs">
+            <div className="text-4xl">🍵</div>
+            <p>Your specialty basket is currently empty.</p>
+            <p className="text-[10px] text-[var(--color-muted-foreground)]">Click "Add to Basket" on any specialty product below!</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 space-y-4 overflow-y-auto pr-1">
+              {cart.map((item) => (
+                <div key={item.id} className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 flex items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5 font-mono text-xs font-600 text-[var(--color-primary)]">
+                      <span>{item.flag}</span>
+                      <span>{item.country}</span>
+                    </div>
+                    <div className="font-display text-sm font-600 text-[var(--color-foreground)]">{item.name}</div>
+                    <div className="font-mono text-xs text-[var(--color-muted-foreground)]">${item.priceUsd} USD</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onUpdateQty(item.id, -1)}
+                      className="w-7 h-7 rounded border border-[var(--color-border)] flex items-center justify-center font-mono text-sm hover:bg-[var(--color-muted)] cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="font-mono text-sm w-4 text-center">{item.qty}</span>
+                    <button
+                      onClick={() => onUpdateQty(item.id, 1)}
+                      className="w-7 h-7 rounded border border-[var(--color-border)] flex items-center justify-center font-mono text-sm hover:bg-[var(--color-muted)] cursor-pointer"
+                    >
+                      +
+                    </button>
+                    <button
+                      onClick={() => onRemove(item.id)}
+                      className="ml-2 text-xs text-red-500 hover:text-red-700 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-[var(--color-border)] pt-4 mt-4 space-y-3">
+              <div className="flex justify-between font-mono text-base font-600">
+                <span>Total Estimated:</span>
+                <span className="text-[var(--color-primary)]">${totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</span>
+              </div>
+              <button
+                onClick={() => setCheckedOut(true)}
+                className="w-full py-3 rounded-full font-mono text-xs uppercase tracking-widest bg-[var(--color-primary)] text-white hover:opacity-90 transition-all shadow-lg cursor-pointer"
+              >
+                Checkout Specialties
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Custom Saved Journey Wishlist Drawer ──────────────────────────────────
+
+interface WishlistDay {
+  dayNumber: number
+  city: string
+  countryName: string
+  date: string
+  cost: number
+}
+
+function WishlistDrawer({
+  wishlist,
+  onRemove,
+  onClose,
+}: {
+  wishlist: WishlistDay[]
+  onRemove: (dayNum: number) => void
+  onClose: () => void
+}) {
+  const downloadItinerary = () => {
+    const text = `MY CUSTOM ASIAN GRAND TOUR ITINERARY\n===================================\n\n` +
+      wishlist.map((w) => `Day ${w.dayNumber}: ${w.city} (${w.countryName}) - Date: ${w.date}\n-----------------------------------`).join('\n\n') +
+      `\n\nGenerated via Asia Grand Tour App`
+
+    const blob = new Blob([text], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'my-custom-asian-tour.txt'
+    a.click()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-[var(--color-card)] border-l border-[var(--color-border)] h-full flex flex-col p-6 shadow-2xl overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 mb-4">
+          <div className="flex items-center gap-2 font-display text-xl font-600">
+            <span>❤️</span>
+            <span>Saved Journey</span>
+            <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)] text-white">
+              {wishlist.length} stops
+            </span>
+          </div>
+          <button onClick={onClose} className="text-xl text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] cursor-pointer">✕</button>
+        </div>
+
+        {wishlist.length === 0 ? (
+          <div className="my-auto text-center py-12 text-[var(--color-muted-foreground)] space-y-3 font-mono text-xs">
+            <div className="text-4xl">🗺️</div>
+            <p>You haven't saved any itinerary stops yet.</p>
+            <p className="text-[10px] text-[var(--color-muted-foreground)]">Click "❤️ Save" on any day card to build your dream tour!</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {wishlist.map((w) => (
+                <div key={w.dayNumber} className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-primary)]">
+                      Day {w.dayNumber} · {w.countryName}
+                    </div>
+                    <div className="font-display text-base font-600">{w.city}</div>
+                    <div className="font-mono text-xs text-[var(--color-muted-foreground)]">{w.date}</div>
+                  </div>
+                  <button
+                    onClick={() => onRemove(w.dayNumber)}
+                    className="text-xs text-red-500 hover:text-red-700 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-[var(--color-border)] pt-4 mt-4">
+              <button
+                onClick={downloadItinerary}
+                className="w-full py-3 rounded-full font-mono text-xs uppercase tracking-widest bg-[var(--color-primary)] text-white hover:opacity-90 transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>📥</span>
+                <span>Download Custom Plan (.txt)</span>
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Discover Southeast Asia — Journeys & Flavors From Every Corner ─────────
 
-function DiscoverSoutheastAsiaSection({ onExploreDestinations }: { onExploreDestinations?: () => void }) {
+function DiscoverSoutheastAsiaSection({
+  onExploreDestinations,
+  onAddToCart,
+}: {
+  onExploreDestinations?: () => void
+  onAddToCart?: (item: { id: string; name: string; country: string; flag: string; priceUsd: number }) => void
+}) {
   const [subscribed, setSubscribed] = useState(false)
   const [email, setEmail] = useState('')
 
@@ -6414,6 +6632,7 @@ function DiscoverSoutheastAsiaSection({ onExploreDestinations }: { onExploreDest
                 <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Country</th>
                 <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Signature Specialty</th>
                 <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Origin & Story</th>
+                <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)] text-right">Order</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)] font-body">
@@ -6425,6 +6644,22 @@ function DiscoverSoutheastAsiaSection({ onExploreDestinations }: { onExploreDest
                   </td>
                   <td className="p-4 font-500">{sp.specialty}</td>
                   <td className="p-4 text-xs text-[var(--color-muted-foreground)]">{sp.story}</td>
+                  <td className="p-4 text-right">
+                    <button
+                      onClick={() =>
+                        onAddToCart?.({
+                          id: sp.country.toLowerCase(),
+                          name: sp.specialty.split(',')[0],
+                          country: sp.country,
+                          flag: sp.flag,
+                          priceUsd: 25,
+                        })
+                      }
+                      className="px-3 py-1.5 rounded-full font-mono text-[11px] uppercase tracking-wider border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-all cursor-pointer shadow-sm"
+                    >
+                      🛒 Add to Basket ($25)
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -6919,6 +7154,46 @@ export default function App() {
   const [showFilm, setShowFilm] = useState(false)
   const [night, setNight] = useState(false)
 
+  // Interactive Marketplace & Wishlist States
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [showCart, setShowCart] = useState(false)
+  const [wishlist, setWishlist] = useState<WishlistDay[]>([])
+  const [showWishlist, setShowWishlist] = useState(false)
+
+  const addToCart = (item: { id: string; name: string; country: string; flag: string; priceUsd: number }) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === item.id)
+      if (existing) {
+        return prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i))
+      }
+      return [...prev, { ...item, qty: 1 }]
+    })
+    setShowCart(true)
+  }
+
+  const updateCartQty = (id: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((i) => (i.id === id ? { ...i, qty: i.qty + delta } : i))
+        .filter((i) => i.qty > 0)
+    )
+  }
+
+  const removeFromCart = (id: string) => {
+    setCart((prev) => prev.filter((i) => i.id !== id))
+  }
+
+  const toggleWishlist = (day: Day, countryName: string) => {
+    setWishlist((prev) => {
+      const exists = prev.some((w) => w.dayNumber === day.day)
+      if (exists) {
+        return prev.filter((w) => w.dayNumber !== day.day)
+      }
+      const dayTotal = day.activities.reduce((s, a) => s + a.cost, 0)
+      return [...prev, { dayNumber: day.day, city: day.city, countryName, date: day.date, cost: dayTotal }]
+    })
+  }
+
   const country = COUNTRIES.find((c) => c.id === countryId) ?? COUNTRIES[0]
   const theme = COUNTRY_BACKGROUNDS[countryId] ?? FALLBACK_BACKGROUND
   const itinerary = country.itinerary ?? []
@@ -6930,9 +7205,6 @@ export default function App() {
 
   const t = (key: string) => tr(lang, key)
 
-  // Bridge the journal's language to the centralized i18n store so the global
-  // switcher, footer, and detection modal stay in lockstep with the journal.
-  // Unsupported journal-only languages (ja/zh/tet) are ignored by the store.
   const changeLang = (code: string) => {
     setLang(code)
     setLocale(code)
@@ -6943,8 +7215,6 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeCode])
 
-  // Lock page scroll while the loading screen is up, so the tall page behind
-  // the fixed overlay can't show a stray scrollbar or drift on its own.
   useEffect(() => {
     if (!loading) return
     const prevOverflow = document.body.style.overflow
@@ -6959,7 +7229,6 @@ export default function App() {
     setCountryId(id)
     setActiveDay(0)
     setShowFilm(false)
-    // Scroll the traveler up to the top of the newly-arrived country.
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60)
   }
 
@@ -6977,6 +7246,21 @@ export default function App() {
 
       {loading && <LoadingScreen onDone={startExperience} montage={COUNTRIES.map((c) => c.film[0])} />}
       {showFilm && <FilmModal country={country} onClose={() => setShowFilm(false)} />}
+      {showCart && (
+        <SpecialtyCartDrawer
+          cart={cart}
+          onUpdateQty={updateCartQty}
+          onRemove={removeFromCart}
+          onClose={() => setShowCart(false)}
+        />
+      )}
+      {showWishlist && (
+        <WishlistDrawer
+          wishlist={wishlist}
+          onRemove={(dayNum) => setWishlist((prev) => prev.filter((w) => w.dayNumber !== dayNum))}
+          onClose={() => setShowWishlist(false)}
+        />
+      )}
 
       {/* Header */}
       <header className="border-b border-[var(--color-border)] bg-[var(--color-card)] sticky top-0 z-30">
@@ -6986,20 +7270,46 @@ export default function App() {
               <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase">{t('grandTour')}</div>
               <h1 className="font-carve text-xl leading-tight">{t('appTitle')}</h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="hidden text-right sm:block">
                 <div className="font-mono text-xs text-[var(--color-muted-foreground)]">{country.name}</div>
                 <div className="font-mono text-sm font-500 text-[var(--color-primary)]">
                   {formatMoney(grandTotal, country)} · ≈ ${toUsd(grandTotal, country).toLocaleString('en-US')}
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowWishlist(true)}
+                title="Saved Journey Stops"
+                className="relative grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-base transition-colors hover:bg-[var(--color-muted)] cursor-pointer"
+              >
+                ❤️
+                {wishlist.length > 0 && (
+                  <span className="absolute -top-1 -right-1 font-mono text-[9px] w-4 h-4 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-600">
+                    {wishlist.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCart(true)}
+                title="Specialty Basket"
+                className="relative grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-base transition-colors hover:bg-[var(--color-muted)] cursor-pointer"
+              >
+                🛒
+                {cart.length > 0 && (
+                  <span className="absolute -top-1 -right-1 font-mono text-[9px] w-4 h-4 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-600">
+                    {cart.reduce((s, i) => s + i.qty, 0)}
+                  </span>
+                )}
+              </button>
               <LanguageSelector value={lang} onChange={changeLang} />
               <button
                 type="button"
                 onClick={() => setNight((n) => !n)}
                 aria-label={night ? 'Switch to daylight' : 'Enter the night market'}
                 title={night ? 'Daylight' : 'Night market'}
-                className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-base transition-colors hover:bg-[var(--color-muted)]"
+                className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-base transition-colors hover:bg-[var(--color-muted)] cursor-pointer"
               >
                 {night ? '🏮' : '🌙'}
               </button>
@@ -7106,7 +7416,10 @@ export default function App() {
 
         {/* ── Discover Southeast Asia — Journeys & Flavors From Every Corner ── */}
         <ScrollReveal>
-          <DiscoverSoutheastAsiaSection onExploreDestinations={() => window.scrollTo({ top: 400, behavior: 'smooth' })} />
+          <DiscoverSoutheastAsiaSection
+            onExploreDestinations={() => window.scrollTo({ top: 400, behavior: 'smooth' })}
+            onAddToCart={addToCart}
+          />
         </ScrollReveal>
 
         {/* ── Regional storytelling (shared across the whole tour) ── */}
