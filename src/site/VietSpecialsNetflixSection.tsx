@@ -100,7 +100,7 @@ export const VIET_SPECIALS: VietSpecialItem[] = [
     region: 'central',
     category: 'heritage',
     coverImage: 'https://images.unsplash.com/photo-1527922891260-918d42a4efc8?w=800&fit=crop&auto=format',
-    videoUrl: 'https://videos.pexels.com/video-files/32547819/13880548_1920_1080_30fps.mp4',
+    videoUrl: 'https://videos.pexels.com/video-files/32547819/13880548_1920_1080_60fps.mp4',
     priceUsd: 195,
     unitLabel: 'Tour Phố Cổ & Hang Động 3D2N',
     tags: ['Kỳ Quan Thiên Nhiên', 'Thám Hiểm'],
@@ -115,7 +115,7 @@ export const VIET_SPECIALS: VietSpecialItem[] = [
     region: 'central',
     category: 'handicraft',
     coverImage: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&fit=crop&auto=format',
-    videoUrl: 'https://videos.pexels.com/video-files/31454275/13413284_1920_1080_30fps.mp4',
+    videoUrl: 'https://videos.pexels.com/video-files/31454275/13413284_1920_1080_60fps.mp4',
     priceUsd: 35,
     unitLabel: 'Cặp Đèn Lồng Lụa Tơ Tằm',
     tags: ['Thủ Công', 'Phố Cổ', 'Hội An'],
@@ -198,6 +198,176 @@ export const VIET_SPECIALS: VietSpecialItem[] = [
     story: 'Kẹo dừa Bến Tre là món quà quê gắn liền với ký ức tuổi thơ. Nước cốt dừa đậm đặc sên cùng đường mạch nha trên chảo đồng tạo nên viên kẹo béo ngậy thơm ngon truyền thống.',
   },
 ]
+
+/* ── Fullscreen Netflix-style Hero Banner Component ────────────────────────── */
+
+function VietSpecialsHeroBanner({
+  onExploreClick,
+  onOpenDetail,
+}: {
+  onExploreClick: () => void
+  onOpenDetail: (item: VietSpecialItem) => void
+}) {
+  const [slideIndex, setSlideIndex] = useState(0)
+  const [isMuted, setIsMuted] = useState(true)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+
+  // Featured items for the hero montage
+  const featured = [
+    VIET_SPECIALS[1], // Ha Long Bay
+    VIET_SPECIALS[4], // Hue Ancient Citadel
+    VIET_SPECIALS[0], // Shan Tuyet Tea
+    VIET_SPECIALS[8], // Phu Quoc Fish Sauce
+    VIET_SPECIALS[2], // Sapa Rice Terraces
+  ]
+
+  const currentItem = featured[slideIndex]
+
+  // Rotate hero slide every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % featured.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [featured.length])
+
+  // Play video on slide change
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0
+      videoRef.current.play().catch(() => {})
+    }
+  }, [slideIndex])
+
+  return (
+    <section className="relative w-full h-[85vh] sm:h-[90vh] overflow-hidden bg-[#14110d] text-[#f4ecdf] border-b border-[#3a3026]">
+      {/* Background Montage Video & Cover Images */}
+      {featured.map((item, idx) => {
+        const isActive = idx === slideIndex
+        return (
+          <div
+            key={item.id}
+            className={`absolute inset-0 transition-opacity duration-[1400ms] ease-in-out ${
+              isActive ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+          >
+            <img
+              src={item.coverImage}
+              alt={item.name}
+              className="absolute inset-0 h-full w-full object-cover scale-105"
+            />
+
+            {isActive && (
+              <video
+                ref={videoRef}
+                src={item.videoUrl}
+                muted={isMuted}
+                loop
+                playsInline
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
+          </div>
+        )
+      })}
+
+      {/* Dark Vignette & Lacquer Gradient Overlay */}
+      <div className="absolute inset-0 z-20 bg-gradient-to-t from-[#14110d] via-[#14110d]/60 to-black/40 pointer-events-none" />
+      <div className="absolute inset-0 z-20 bg-gradient-to-r from-[#14110d] via-[#14110d]/80 to-transparent w-full md:w-3/4 pointer-events-none" />
+
+      {/* Header Bar Controls: Brand Logo (Left) & Sound Mute Toggle (Right) */}
+      <div className="absolute top-6 inset-x-6 sm:inset-x-12 z-30 flex items-center justify-between">
+        {/* Brand Logo */}
+        <div className="flex items-center gap-3">
+          <span className="red-seal-stamp w-10 h-10 text-xs shadow-lg">VN</span>
+          <div>
+            <span className="font-display font-700 text-lg sm:text-xl text-[#f4ecdf] tracking-wide block leading-none">
+              Đặc Sản Du Lịch Việt
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[#cf9c3f]">
+              Bảo Tống Di Sản & Hương Vị
+            </span>
+          </div>
+        </div>
+
+        {/* Mute/Unmute Toggle Button */}
+        <button
+          onClick={() => setIsMuted(!isMuted)}
+          className="h-10 w-10 rounded-full border border-[#f4ecdf]/30 bg-black/60 text-[#f4ecdf] flex items-center justify-center text-sm backdrop-blur-md hover:bg-black/90 hover:border-[#c23b34] transition-all cursor-pointer shadow-lg"
+          title={isMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
+        >
+          {isMuted ? '🔇' : '🔊'}
+        </button>
+      </div>
+
+      {/* Main Content Container (Safe Area, Bottom 1/3, Left Aligned) */}
+      <div className="relative z-30 h-full max-w-7xl mx-auto px-6 sm:px-12 flex flex-col justify-end pb-12 sm:pb-16 text-left">
+        <div className="max-w-2xl space-y-4">
+          {/* Metadata Line */}
+          <div className="flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-widest text-[#cf9c3f]">
+            <span className="red-seal-stamp w-5 h-5 text-[8px]">{currentItem.sealCode}</span>
+            <span>Điểm Đến · 2026 · Thước Phim Ngắn · VN10</span>
+          </div>
+
+          {/* Large Serif Title */}
+          <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-700 leading-[1.08] text-[#f4ecdf] drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
+            {currentItem.name}
+          </h1>
+
+          {/* Short Description (~140 chars) */}
+          <p className="font-body text-sm sm:text-base text-[#b8ac97] leading-relaxed line-clamp-3 max-w-xl drop-shadow-md">
+            {currentItem.description}
+          </p>
+
+          {/* Action Control Buttons (Side-by-Side) */}
+          <div className="pt-3 flex flex-wrap items-center gap-4">
+            {/* Primary Button */}
+            <button
+              onClick={() => onOpenDetail(currentItem)}
+              className="px-7 py-3.5 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest bg-[#c23b34] hover:bg-[#8a2a2a] text-white flex items-center gap-2.5 shadow-xl shadow-[#c23b34]/30 hover:scale-[1.03] transition-all cursor-pointer"
+            >
+              <span>▶</span>
+              <span>Khám Phá Ngay</span>
+            </button>
+
+            {/* Secondary Button */}
+            <button
+              onClick={onExploreClick}
+              className="px-7 py-3.5 rounded-full font-mono text-xs sm:text-sm uppercase tracking-widest border border-[#b8ac97]/40 bg-[#1f1a14]/60 text-[#f4ecdf] hover:border-[#cf9c3f] hover:text-[#cf9c3f] backdrop-blur-md transition-all cursor-pointer"
+            >
+              <span>ℹ️ Thông Tin Khác</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom-Right Quick Links & Indicators */}
+        <div className="absolute bottom-6 right-6 sm:bottom-12 sm:right-12 hidden sm:flex items-center gap-6 font-mono text-xs text-[#b8ac97]">
+          <button onClick={onExploreClick} className="hover:text-[#cf9c3f] transition-colors cursor-pointer">
+            ✦ Đặc Sản Mới
+          </button>
+          <span className="text-[#3a3026]">|</span>
+          <button onClick={onExploreClick} className="hover:text-[#cf9c3f] transition-colors cursor-pointer">
+            ✦ Xem Theo Vùng Miền
+          </button>
+          <span className="text-[#3a3026]">|</span>
+          <div className="flex gap-1.5">
+            {featured.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setSlideIndex(i)}
+                className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                  i === slideIndex ? 'w-6 bg-[#c23b34]' : 'w-2 bg-[#b8ac97]/40 hover:bg-[#b8ac97]'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── Specialty Netflix Card Component ──────────────────────────────────────── */
 
 function SpecialtyNetflixCard({
   item,
@@ -379,6 +549,8 @@ function SpecialtyNetflixCard({
   )
 }
 
+/* ── Main VietSpecialsNetflixSection Export ────────────────────────────────── */
+
 export function VietSpecialsNetflixSection({
   onAddToCart,
   onToggleWishlist,
@@ -390,6 +562,7 @@ export function VietSpecialsNetflixSection({
 }) {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'cuisine' | 'handicraft' | 'heritage' | 'agriculture'>('all')
   const [activeModalItem, setActiveModalItem] = useState<VietSpecialItem | null>(null)
+  const carouselSectionRef = useRef<HTMLDivElement | null>(null)
 
   const filteredItems = selectedCategory === 'all'
     ? VIET_SPECIALS
@@ -399,218 +572,233 @@ export function VietSpecialsNetflixSection({
   const centralItems = filteredItems.filter((i) => i.region === 'central')
   const southItems = filteredItems.filter((i) => i.region === 'south')
 
+  const scrollToCarousels = () => {
+    if (carouselSectionRef.current) {
+      carouselSectionRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
   return (
-    <section className="relative my-16 py-12 px-4 sm:px-8 bg-[#14110d] text-[#f4ecdf] border-y border-[#3a3026]">
-      {/* Background lacquer pattern glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,#2a1818_0%,transparent_70%)] opacity-40 pointer-events-none" />
+    <div className="relative w-full bg-[#14110d] text-[#f4ecdf]">
+      {/* SECTION 1: Fullscreen Netflix-style Hero Banner */}
+      <VietSpecialsHeroBanner
+        onExploreClick={scrollToCarousels}
+        onOpenDetail={(i) => setActiveModalItem(i)}
+      />
 
-      <div className="max-w-7xl mx-auto relative z-10 space-y-10">
-        {/* Header Title Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#3a3026] pb-6">
-          <div>
-            <div className="font-mono text-xs uppercase tracking-[0.35em] text-[#cf9c3f] mb-2 flex items-center gap-2">
-              <span className="red-seal-stamp w-6 h-6 text-[9px]">VN</span>
-              <span>Đặc Sản & Điểm Đến Du Lịch Việt</span>
-            </div>
-            <h2 className="font-display text-3xl sm:text-5xl font-700 text-[#f4ecdf] leading-tight">
-              Khám Phá Hương Vị <span className="text-[#c23b34]">Ba Miền</span>
-            </h2>
-            <p className="mt-2 max-w-2xl font-body text-sm text-[#b8ac97]">
-              Trải nghiệm lướt xem nghệ thuật đặc sản làng nghề, ẩm thực di sản và cảnh quan tuyệt đẹp khắp Việt Nam với góc nhìn thước phim sống động.
-            </p>
-          </div>
+      {/* SECTION 2 & 3: Regional Carousels & Category Filters */}
+      <section ref={carouselSectionRef} className="relative my-12 py-12 px-4 sm:px-8 bg-[#14110d] border-b border-[#3a3026]">
+        {/* Background lacquer pattern glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,#2a1818_0%,transparent_70%)] opacity-40 pointer-events-none" />
 
-          {/* Category Filter Pills */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: 'all', label: 'Tất Cả' },
-              { id: 'cuisine', label: 'Ẩm Thực' },
-              { id: 'handicraft', label: 'Thủ Công Mỹ Nghệ' },
-              { id: 'heritage', label: 'Thiên Nhiên & Di Sản' },
-              { id: 'agriculture', label: 'Nông Sản' },
-            ].map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id as any)}
-                className={`px-4 py-2 rounded-full font-mono text-xs uppercase tracking-wider transition-all cursor-pointer border ${
-                  selectedCategory === cat.id
-                    ? 'bg-[#c23b34] text-white border-[#c23b34] shadow-lg shadow-[#c23b34]/20'
-                    : 'bg-[#1f1a14] text-[#b8ac97] border-[#3a3026] hover:border-[#b8ac97]/50 hover:text-[#f4ecdf]'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Row 1: Miền Bắc (North Region) */}
-        {northItems.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="red-seal-stamp">MB</span>
-              <h3 className="font-display text-2xl font-600 text-[#f4ecdf]">
-                Miền Bắc — Vùng Đất Di Sản & Núi Rừng
-              </h3>
+        <div className="max-w-7xl mx-auto relative z-10 space-y-10">
+          {/* Header Title & Category Filter Pills */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#3a3026] pb-6">
+            <div>
+              <div className="font-mono text-xs uppercase tracking-[0.35em] text-[#cf9c3f] mb-2 flex items-center gap-2">
+                <span className="red-seal-stamp w-6 h-6 text-[9px]">VN</span>
+                <span>Đặc Sản & Điểm Đến Du Lịch Việt</span>
+              </div>
+              <h2 className="font-display text-3xl sm:text-5xl font-700 text-[#f4ecdf] leading-tight text-left">
+                Khám Phá Hương Vị <span className="text-[#c23b34]">Ba Miền</span>
+              </h2>
+              <p className="mt-2 max-w-2xl font-body text-sm text-[#b8ac97] text-left">
+                Trải nghiệm lướt xem nghệ thuật đặc sản làng nghề, ẩm thực di sản và cảnh quan tuyệt đẹp khắp Việt Nam với góc nhìn thước phim sống động.
+              </p>
             </div>
 
-            <div className="flex gap-5 overflow-x-auto pb-6 pt-2 scrollbar-thin no-scrollbar">
-              {northItems.map((item) => (
-                <SpecialtyNetflixCard
-                  key={item.id}
-                  item={item}
-                  onOpenDetail={(i) => setActiveModalItem(i)}
-                  onAddToCart={onAddToCart}
-                  onToggleWishlist={onToggleWishlist}
-                  isWishlisted={wishlistIds.includes(item.id)}
-                />
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'all', label: 'Tất Cả' },
+                { id: 'cuisine', label: 'Ẩm Thực' },
+                { id: 'handicraft', label: 'Thủ Công Mỹ Nghệ' },
+                { id: 'heritage', label: 'Thiên Nhiên & Di Sản' },
+                { id: 'agriculture', label: 'Nông Sản' },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id as any)}
+                  className={`px-4 py-2 rounded-full font-mono text-xs uppercase tracking-wider transition-all cursor-pointer border ${
+                    selectedCategory === cat.id
+                      ? 'bg-[#c23b34] text-white border-[#c23b34] shadow-lg shadow-[#c23b34]/20'
+                      : 'bg-[#1f1a14] text-[#b8ac97] border-[#3a3026] hover:border-[#b8ac97]/50 hover:text-[#f4ecdf]'
+                  }`}
+                >
+                  {cat.label}
+                </button>
               ))}
             </div>
           </div>
-        )}
 
-        {/* Row 2: Miền Trung (Central Region) */}
-        {centralItems.length > 0 && (
-          <div className="space-y-4 pt-4">
-            <div className="flex items-center gap-3">
-              <span className="red-seal-stamp">MT</span>
-              <h3 className="font-display text-2xl font-600 text-[#f4ecdf]">
-                Miền Trung — Vùng Đất Cố Đô & Biển Đảo
-              </h3>
-            </div>
+          {/* Row 1: Miền Bắc (North Region) */}
+          {northItems.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="red-seal-stamp">MB</span>
+                <h3 className="font-display text-2xl font-600 text-[#f4ecdf]">
+                  Miền Bắc — Vùng Đất Di Sản & Núi Rừng
+                </h3>
+              </div>
 
-            <div className="flex gap-5 overflow-x-auto pb-6 pt-2 scrollbar-thin no-scrollbar">
-              {centralItems.map((item) => (
-                <SpecialtyNetflixCard
-                  key={item.id}
-                  item={item}
-                  onOpenDetail={(i) => setActiveModalItem(i)}
-                  onAddToCart={onAddToCart}
-                  onToggleWishlist={onToggleWishlist}
-                  isWishlisted={wishlistIds.includes(item.id)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Row 3: Miền Nam (South Region) */}
-        {southItems.length > 0 && (
-          <div className="space-y-4 pt-4">
-            <div className="flex items-center gap-3">
-              <span className="red-seal-stamp">MN</span>
-              <h3 className="font-display text-2xl font-600 text-[#f4ecdf]">
-                Miền Nam — Phồn Hoa Sông Nước & Miệt Vườn
-              </h3>
-            </div>
-
-            <div className="flex gap-5 overflow-x-auto pb-6 pt-2 scrollbar-thin no-scrollbar">
-              {southItems.map((item) => (
-                <SpecialtyNetflixCard
-                  key={item.id}
-                  item={item}
-                  onOpenDetail={(i) => setActiveModalItem(i)}
-                  onAddToCart={onAddToCart}
-                  onToggleWishlist={onToggleWishlist}
-                  isWishlisted={wishlistIds.includes(item.id)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Interactive Detail Modal */}
-      {activeModalItem && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
-          onClick={() => setActiveModalItem(null)}
-        >
-          <div
-            className="relative w-full max-w-3xl overflow-hidden rounded-2xl bg-[#1f1a14] border border-[#c23b34]/40 shadow-2xl text-[#f4ecdf]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header Video Banner */}
-            <div className="relative aspect-video w-full overflow-hidden bg-black">
-              <video
-                src={activeModalItem.videoUrl}
-                autoPlay
-                loop
-                controls
-                className="h-full w-full object-cover"
-              />
-
-              <button
-                onClick={() => setActiveModalItem(null)}
-                className="absolute top-4 right-4 z-20 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black cursor-pointer"
-              >
-                ✕
-              </button>
-
-              <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
-                <span className="red-seal-stamp">{activeModalItem.sealCode}</span>
-                <span className="font-mono text-xs px-3 py-1 rounded-full bg-[#c23b34] text-white">
-                  {activeModalItem.province}
-                </span>
+              <div className="flex gap-5 overflow-x-auto pb-6 pt-2 scrollbar-thin no-scrollbar">
+                {northItems.map((item) => (
+                  <SpecialtyNetflixCard
+                    key={item.id}
+                    item={item}
+                    onOpenDetail={(i) => setActiveModalItem(i)}
+                    onAddToCart={onAddToCart}
+                    onToggleWishlist={onToggleWishlist}
+                    isWishlisted={wishlistIds.includes(item.id)}
+                  />
+                ))}
               </div>
             </div>
+          )}
 
-            {/* Modal Body Info */}
-            <div className="p-6 sm:p-8 space-y-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-display text-2xl sm:text-3xl font-700 text-[#f4ecdf]">
-                    {activeModalItem.name}
-                  </h3>
-                  <p className="font-mono text-xs text-[#cf9c3f] mt-1">
-                    {activeModalItem.unitLabel}
-                  </p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <span className="font-mono text-2xl font-700 text-[#cf9c3f]">
-                    ${activeModalItem.priceUsd} USD
+          {/* Row 2: Miền Trung (Central Region) */}
+          {centralItems.length > 0 && (
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center gap-3">
+                <span className="red-seal-stamp">MT</span>
+                <h3 className="font-display text-2xl font-600 text-[#f4ecdf]">
+                  Miền Trung — Vùng Đất Cố Đô & Biển Đảo
+                </h3>
+              </div>
+
+              <div className="flex gap-5 overflow-x-auto pb-6 pt-2 scrollbar-thin no-scrollbar">
+                {centralItems.map((item) => (
+                  <SpecialtyNetflixCard
+                    key={item.id}
+                    item={item}
+                    onOpenDetail={(i) => setActiveModalItem(i)}
+                    onAddToCart={onAddToCart}
+                    onToggleWishlist={onToggleWishlist}
+                    isWishlisted={wishlistIds.includes(item.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Row 3: Miền Nam (South Region) */}
+          {southItems.length > 0 && (
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center gap-3">
+                <span className="red-seal-stamp">MN</span>
+                <h3 className="font-display text-2xl font-600 text-[#f4ecdf]">
+                  Miền Nam — Phồn Hoa Sông Nước & Miệt Vườn
+                </h3>
+              </div>
+
+              <div className="flex gap-5 overflow-x-auto pb-6 pt-2 scrollbar-thin no-scrollbar">
+                {southItems.map((item) => (
+                  <SpecialtyNetflixCard
+                    key={item.id}
+                    item={item}
+                    onOpenDetail={(i) => setActiveModalItem(i)}
+                    onAddToCart={onAddToCart}
+                    onToggleWishlist={onToggleWishlist}
+                    isWishlisted={wishlistIds.includes(item.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 4: Interactive Detail Modal */}
+        {activeModalItem && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+            onClick={() => setActiveModalItem(null)}
+          >
+            <div
+              className="relative w-full max-w-3xl overflow-hidden rounded-2xl bg-[#1f1a14] border border-[#c23b34]/40 shadow-2xl text-[#f4ecdf]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header Video Banner */}
+              <div className="relative aspect-video w-full overflow-hidden bg-black">
+                <video
+                  src={activeModalItem.videoUrl}
+                  autoPlay
+                  loop
+                  controls
+                  className="h-full w-full object-cover"
+                />
+
+                <button
+                  onClick={() => setActiveModalItem(null)}
+                  className="absolute top-4 right-4 z-20 h-9 w-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black cursor-pointer"
+                >
+                  ✕
+                </button>
+
+                <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+                  <span className="red-seal-stamp">{activeModalItem.sealCode}</span>
+                  <span className="font-mono text-xs px-3 py-1 rounded-full bg-[#c23b34] text-white">
+                    {activeModalItem.province}
                   </span>
                 </div>
               </div>
 
-              <p className="font-body text-base leading-relaxed text-[#b8ac97]">
-                {activeModalItem.story}
-              </p>
-
-              {/* Action buttons inside modal */}
-              <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[#3a3026]">
-                <div className="flex gap-2">
-                  {activeModalItem.tags.map((t) => (
-                    <span key={t} className="text-xs font-mono px-3 py-1 rounded bg-[#2a231b] text-[#b8ac97]">
-                      #{t}
+              {/* Modal Body Info */}
+              <div className="p-6 sm:p-8 space-y-5 text-left">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="font-display text-2xl sm:text-3xl font-700 text-[#f4ecdf]">
+                      {activeModalItem.name}
+                    </h3>
+                    <p className="font-mono text-xs text-[#cf9c3f] mt-1">
+                      {activeModalItem.unitLabel}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="font-mono text-2xl font-700 text-[#cf9c3f]">
+                      ${activeModalItem.priceUsd} USD
                     </span>
-                  ))}
+                  </div>
                 </div>
 
-                <div className="flex gap-3">
-                  {onAddToCart && (
-                    <button
-                      onClick={() => {
-                        onAddToCart({
-                          id: activeModalItem.id,
-                          name: activeModalItem.name,
-                          country: activeModalItem.province,
-                          flag: '🇻🇳',
-                          priceUsd: activeModalItem.priceUsd,
-                        })
-                        setActiveModalItem(null)
-                      }}
-                      className="px-6 py-2.5 rounded-full font-mono text-xs uppercase tracking-widest bg-[#c23b34] hover:bg-[#8a2a2a] text-white shadow-lg cursor-pointer transition-colors"
-                    >
-                      🛒 Đặt Mua Ngay (${activeModalItem.priceUsd})
-                    </button>
-                  )}
+                <p className="font-body text-base leading-relaxed text-[#b8ac97]">
+                  {activeModalItem.story}
+                </p>
+
+                {/* Action buttons inside modal */}
+                <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[#3a3026]">
+                  <div className="flex gap-2">
+                    {activeModalItem.tags.map((t) => (
+                      <span key={t} className="text-xs font-mono px-3 py-1 rounded bg-[#2a231b] text-[#b8ac97]">
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-3">
+                    {onAddToCart && (
+                      <button
+                        onClick={() => {
+                          onAddToCart({
+                            id: activeModalItem.id,
+                            name: activeModalItem.name,
+                            country: activeModalItem.province,
+                            flag: '🇻🇳',
+                            priceUsd: activeModalItem.priceUsd,
+                          })
+                          setActiveModalItem(null)
+                        }}
+                        className="px-6 py-2.5 rounded-full font-mono text-xs uppercase tracking-widest bg-[#c23b34] hover:bg-[#8a2a2a] text-white shadow-lg cursor-pointer transition-colors"
+                      >
+                        🛒 Đặt Mua Ngay (${activeModalItem.priceUsd})
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </section>
+        )}
+      </section>
+    </div>
   )
 }
