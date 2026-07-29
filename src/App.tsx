@@ -1,11 +1,13 @@
 // The Asia Grand Tour — multi-country travel journal
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { type ReactNode, createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import LoadingScreen from './LoadingScreen'
 import { SiteFooter } from './site/footer'
 import LanguageDetectModal from './LanguageDetectModal'
-import { VietSpecialsNetflixSection } from './site/VietSpecialsNetflixSection'
 import { getLocale, setLocale, isSupported, useLocale } from './i18n'
-import { Tx } from './i18n/Tx'
+import { Tx, useAutoTr } from './i18n/Tx'
+import LanguageSwitcher from './i18n/LanguageSwitcher'
+import VersionSwitcher, { readUiVersion, type UiVersion } from './VersionSwitcher'
 
 interface Activity {
   time: string
@@ -560,8 +562,10 @@ interface Country {
   itinerary: Day[]
 }
 
+// `auto=format` serves AVIF/WebP where supported; `q=72` trims payload with no
+// visible loss at these display sizes.
 const img = (id: string, w = 1600, h = 900) =>
-  `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format`
+  `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format&q=72`
 
 // ─── Vietnam ───────────────────────────────────────────────────────────
 
@@ -4227,6 +4231,47 @@ const landmarkSlug = (city: string) =>
 const heroVideoFor = (countryId: string, city: string): string | undefined =>
   DAY_VIDEO[daySlug(city)] ?? LANDMARK_VIDEO[landmarkSlug(city)] ?? COUNTRY_VIDEO[countryId]
 
+// Per-country cinematic fallback for the Provinces & Regions previews — reuses
+// known-good, copyright-safe Pexels clips already in the library so every
+// destination resolves to a video where one plausibly represents the place.
+// Countries without a representative clip (Myanmar, Brunei, Timor-Leste) fall
+// through to their high-quality hero image instead of a mislabelled foreign one.
+const REGION_FALLBACK_VIDEO: Record<string, string> = {
+  vietnam: COUNTRY_VIDEO.vietnam,
+  thailand: COUNTRY_VIDEO.thailand,
+  japan: COUNTRY_VIDEO.japan,
+  china: COUNTRY_VIDEO.china,
+  laos: LANDMARK_VIDEO['vientiane'] ?? LANDMARK_VIDEO['luang-prabang'],
+  cambodia: LANDMARK_VIDEO['angkor'] ?? LANDMARK_VIDEO['siem-reap'],
+  malaysia: LANDMARK_VIDEO['kuala-lumpur'],
+  singapore: LANDMARK_VIDEO['marina-bay-gardens'] ?? LANDMARK_VIDEO['gardens-by-the-bay'],
+  indonesia: LANDMARK_VIDEO['bali'],
+  philippines: LANDMARK_VIDEO['el-nido'] ?? LANDMARK_VIDEO['manila'],
+  // Myanmar, Brunei and Timor-Leste have no dedicated clips in the library, so
+  // they lean on the closest thematically fitting, known-good footage — golden
+  // Buddhist temples, the Malay-world skyline, and tropical islands.
+  myanmar: LANDMARK_VIDEO['ayutthaya'] ?? LANDMARK_VIDEO['sukhothai'],
+  brunei: LANDMARK_VIDEO['kuala-lumpur'],
+  timor: LANDMARK_VIDEO['bali'],
+}
+
+// Region-name overrides (by landmark slug) for distinctive spots that would
+// otherwise share their country's generic fallback — chiefly beaches and reefs.
+const REGION_VIDEO_OVERRIDE: Record<string, string> = {
+  ngapali: LANDMARK_VIDEO['boracay'] ?? LANDMARK_VIDEO['el-nido'],
+  'atauro-island': LANDMARK_VIDEO['sipadan'] ?? LANDMARK_VIDEO['semporna'],
+  'kampong-ayer': LANDMARK_VIDEO['langkawi'],
+}
+
+// Resolve a preview clip for a region: an explicit override, then a landmark
+// match on the region name, then a distinctive-spot override, then the
+// per-country cinematic fallback.
+const regionVideoFor = (countryId: string, region: { name: string; video?: string }): string | undefined =>
+  region.video ??
+  LANDMARK_VIDEO[landmarkSlug(region.name)] ??
+  REGION_VIDEO_OVERRIDE[landmarkSlug(region.name)] ??
+  REGION_FALLBACK_VIDEO[countryId]
+
 // ─── Country registry ───────────────────────────────────────────────────
 
 const COUNTRIES: Country[] = [
@@ -4741,6 +4786,8 @@ function Montage({ images, playing, index }: { images: string[]; playing: boolea
           src={src}
           alt=""
           aria-hidden="true"
+          loading="lazy"
+          decoding="async"
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1400ms] ease-in-out ${
             i === index ? `opacity-100 ${playing ? 'kenburns-active' : ''}` : 'opacity-0'
           }`}
@@ -4905,23 +4952,34 @@ function FlipCard({ country, h }: { country: Country; h: Highlight }) {
   const L = (s: string) => (loc ? s : <Tx>{s}</Tx>)
 
   return (
-    <div className="flip aspect-[4/3]">
+    <div className="relative aspect-[4/3]">
+      {/* Save control sits OUTSIDE .flip so its focus never triggers the
+          card's :focus-within flip, and its clicks don't flip the card. */}
+      <div className="absolute right-2 top-2 z-20">
+        <SaveButton
+          item={{
+            id: `specialty:${country.id}:${h.title}`,
+            kind: 'specialty',
+            title,
+            subtitle: country.name,
+            image: h.image,
+            accent: country.accent,
+          }}
+        />
+      </div>
+      <div className={`flip absolute inset-0 ${flipped ? 'is-flipped' : ''}`}>
       <button
         type="button"
         onClick={() => setFlipped((f) => !f)}
         aria-label={`${title} — ${t('flipBack')}`}
-        className={`flip-inner block w-full text-left focus:outline-none ${flipped ? 'is-flipped' : ''}`}
-        style={{ height: '100%' }}
+        className="flip-inner block h-full w-full text-left focus:outline-none"
       >
         {/* Front — image + name */}
         <span className="flip-face group block border border-[var(--color-border)] bg-[var(--color-muted)]">
-          <img src={h.image} alt={h.alt} className="h-full w-full object-cover" />
+          <img src={h.image} alt={h.alt} loading="lazy" decoding="async" className="h-full w-full object-cover" />
           <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
           <span className="absolute left-2 top-2 rounded-sm bg-[var(--color-primary)] px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--color-primary-foreground)]">
             {L(tag)}
-          </span>
-          <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-white/20 text-[11px] text-white backdrop-blur-sm">
-            ↻
           </span>
           <span className="absolute bottom-0 left-0 right-0 p-3">
             <span className="block font-display text-base font-600 leading-tight text-white">{L(title)}</span>
@@ -4942,6 +5000,7 @@ function FlipCard({ country, h }: { country: Country; h: Highlight }) {
           <span className="font-mono text-[9px] uppercase tracking-widest text-white/60">↻ {t('flipBack')}</span>
         </span>
       </button>
+      </div>
     </div>
   )
 }
@@ -4988,59 +5047,18 @@ function LocalTime({ country }: { country: Country }) {
   const offset = dtf({ timeZoneName: 'shortOffset' }).split(' ').pop()
 
   return (
-const COUNTRY_CLIMATE: Record<string, string> = {
-  vietnam: '🌤️ 26°C · Dry Season · Ideal Exploration',
-  thailand: '☀️ 31°C · Sunny & Tropical · Festival Season',
-  indonesia: '⛅ 28°C · Tropical Breeze · Great Beach Season',
-  laos: '☀️ 25°C · Cool Mountain Breeze',
-  cambodia: '🌤️ 28°C · Pleasant & Sunny',
-  myanmar: '☀️ 27°C · Dry & Golden Sunshine',
-  malaysia: '☀️ 29°C · Warm & Sunny',
-  singapore: '🌦️ 30°C · Tropical Sun & Showers',
-  philippines: '☀️ 30°C · Clear Sky & Island Seas',
-  brunei: '☀️ 29°C · Tropical Sun',
-  timor: '☀️ 28°C · Warm Coastal Breeze',
-  japan: '☀️ 18°C · Crisp & Clear · Peak Foliage',
-  china: '🌤️ 16°C · Cool & Crisp',
-}
-
-function LocalTime({ country }: { country: Country }) {
-  const meta = TIMEZONES[country.id]
-  const [now, setNow] = useState(new Date())
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000)
-    return () => window.clearInterval(id)
-  }, [])
-
-  const fmt = (opts: Intl.DateTimeFormatOptions) => {
-    try {
-      return new Intl.DateTimeFormat('en-US', { ...opts, timeZone: meta?.tz }).format(now)
-    } catch {
-      return ''
-    }
-  }
-
-  const time = fmt({ hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-  const weekday = fmt({ weekday: 'long' })
-  const day = fmt({ day: 'numeric' })
-  const month = fmt({ month: 'long' })
-  const year = fmt({ year: 'numeric' })
-  const offset = currentOffset(meta?.tz)
-
-  return (
-    <section className="mb-8 flex flex-col gap-4 border border-[var(--color-border)] bg-[var(--color-card)] p-5 sm:flex-row sm:items-center sm:justify-between shadow-sm">
+    <section className="mb-8 flex flex-col gap-4 border border-[var(--color-border)] bg-[var(--color-card)] p-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
-        <span className="text-3xl leading-none">{country.flag}</span>
+        <span className="text-2xl leading-none">{country.flag}</span>
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-muted-foreground)]">
             Local time in {country.name}
           </div>
           <div className="font-display text-lg font-600 leading-tight">
-            {weekday} · {day} {month} {year}
+            {weekday}
           </div>
-          <div className="font-mono text-xs font-500 text-[var(--color-primary)] mt-1">
-            {COUNTRY_CLIMATE[country.id] ?? '☀️ 26°C · Pleasant Weather'}
+          <div className="font-body text-sm text-[var(--color-muted-foreground)]">
+            {day} {month} {year}
           </div>
         </div>
       </div>
@@ -5262,11 +5280,11 @@ function ScrollStory({
   return (
     <section data-story="rice" className="mb-16 border-t border-[var(--color-border)] pt-12">
       <div className="mb-8">
-        <div className="font-mono text-xs uppercase tracking-[0.35em] text-[var(--color-primary)]">{eyebrow}</div>
+        <div className="accent-gradient inline-block font-mono text-xs uppercase tracking-[0.35em]">{eyebrow}</div>
         <h2 className="mt-2 font-carve text-4xl leading-tight sm:text-5xl">
           <span className="script-rule">{title}</span>
         </h2>
-        <p className="mt-4 max-w-2xl font-thin-body text-lg leading-relaxed text-[var(--color-muted-foreground)]"><Tx>{lead}</Tx></p>
+        <p className="mt-4 max-w-2xl font-thin-body text-lg leading-relaxed text-[var(--color-muted-foreground)]">{lead}</p>
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
@@ -5297,7 +5315,7 @@ function ScrollStory({
             <div key={c.n} data-idx={i} className="flex min-h-[62vh] flex-col justify-center py-8">
               {/* Mobile image */}
               <div className="relative mb-4 h-52 overflow-hidden rounded-lg border border-[var(--color-border)] md:hidden">
-                <img src={c.img} alt={c.title} className="h-full w-full object-cover" />
+                <img src={c.img} alt={c.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                 {c.steam && <Steam />}
               </div>
               <div className="flex items-baseline gap-4">
@@ -5329,6 +5347,11 @@ interface Region {
   image: string
   description: string
   specialty: string
+  // Optional enrichment for the cinematic preview panel. `video` overrides the
+  // resolved clip; `attractions` and `bestTime` add localized subtitle rows.
+  video?: string
+  attractions?: string
+  bestTime?: string
 }
 
 /* Follows the requested { name, regions } shape, with an id + flag added so
@@ -5344,13 +5367,13 @@ const REGION_GUIDE: RegionCountry[] = [
   {
     id: 'vietnam', name: 'Vietnam', flag: '🇻🇳',
     regions: [
-      { name: 'Hanoi', image: img('1629711627786-61c53394512f', 800, 600), description: 'The thousand-year capital, where lake-side pagodas meet the tangle of the Old Quarter\'s thirty-six trade streets.', specialty: '🏛️ Heritage — the Old Quarter & Hoan Kiem Lake' },
-      { name: 'Ha Long Bay', image: img('1556383166-eded0173b7fd', 800, 600), description: 'Nearly two thousand limestone karsts rise from jade water, best seen from the deck of an overnight junk.', specialty: '🏞️ Heritage — a UNESCO seascape of karsts' },
-      { name: 'Hue', image: img('1725335739643-9df3464395a2', 800, 600), description: 'The last imperial capital, its moated Citadel and royal tombs strung along the Perfume River.', specialty: '🏯 Heritage — the Nguyen dynasty Citadel' },
-      { name: 'Hoi An', image: img('1725335738348-9d45f9ac5fb7', 800, 600), description: 'A perfectly preserved trading port that dims its lights each full moon and floats the river with silk lanterns.', specialty: '🏮 Festival — the monthly lantern nights' },
-      { name: 'Ho Chi Minh City', image: img('1725335742692-4bf44d0f32c9', 800, 600), description: 'The roaring southern metropolis, its boulevards fuelled by pavement bánh mì carts and iced egg coffee.', specialty: '🍜 Food — bánh mì & street coffee' },
-      { name: 'Sapa', image: img('1725335744133-12b438e6c3f9', 800, 600), description: 'Mist-wrapped highlands of stepped rice terraces farmed by Hmong and Dao hill communities.', specialty: '🌾 Heritage — terraced fields & hill tribes' },
-      { name: 'Mekong Delta', image: img('1725335738156-9795bb914794', 800, 600), description: 'A watery lattice of rivers and orchards where trade still happens boat-to-boat at dawn.', specialty: '🛶 Food — the floating markets' },
+      { name: 'Hanoi', image: img('1629711627786-61c53394512f', 800, 600), description: 'The thousand-year capital, where lake-side pagodas meet the tangle of the Old Quarter\'s thirty-six trade streets.', specialty: '🏛️ Heritage — the Old Quarter & Hoan Kiem Lake', attractions: 'Hoan Kiem Lake, the Old Quarter, the Temple of Literature, and Ho Chi Minh\'s Mausoleum.', bestTime: 'October to April, for cool and dry weather.' },
+      { name: 'Ha Long Bay', image: img('1556383166-eded0173b7fd', 800, 600), description: 'Nearly two thousand limestone karsts rise from jade water, best seen from the deck of an overnight junk.', specialty: '🏞️ Heritage — a UNESCO seascape of karsts', attractions: 'Overnight junk cruises, Sung Sot Cave, Ti Top Island, and kayaking among the karsts.', bestTime: 'October to April, for clear skies and calm seas.' },
+      { name: 'Hue', image: img('1725335739643-9df3464395a2', 800, 600), description: 'The last imperial capital, its moated Citadel and royal tombs strung along the Perfume River.', specialty: '🏯 Heritage — the Nguyen dynasty Citadel', attractions: 'The Imperial Citadel, the royal tombs, Thien Mu Pagoda, and Perfume River boat trips.', bestTime: 'February to April, for dry and mild days.' },
+      { name: 'Hoi An', image: img('1725335738348-9d45f9ac5fb7', 800, 600), description: 'A perfectly preserved trading port that dims its lights each full moon and floats the river with silk lanterns.', specialty: '🏮 Festival — the monthly lantern nights', attractions: 'The Ancient Town, the Japanese Covered Bridge, riverside tailor shops, and the monthly lantern festival.', bestTime: 'February to April, in the dry season.' },
+      { name: 'Ho Chi Minh City', image: img('1725335742692-4bf44d0f32c9', 800, 600), description: 'The roaring southern metropolis, its boulevards fuelled by pavement bánh mì carts and iced egg coffee.', specialty: '🍜 Food — bánh mì & street coffee', attractions: 'Ben Thanh Market, the War Remnants Museum, Notre-Dame Basilica, and the Cu Chi Tunnels.', bestTime: 'December to April, in the dry season.' },
+      { name: 'Sapa', image: img('1725335744133-12b438e6c3f9', 800, 600), description: 'Mist-wrapped highlands of stepped rice terraces farmed by Hmong and Dao hill communities.', specialty: '🌾 Heritage — terraced fields & hill tribes', attractions: 'The Muong Hoa rice terraces, Fansipan summit, hill-tribe villages, and the Cat Cat valley trek.', bestTime: 'March to May and September to November, for clear terraces.' },
+      { name: 'Mekong Delta', image: img('1725335738156-9795bb914794', 800, 600), description: 'A watery lattice of rivers and orchards where trade still happens boat-to-boat at dawn.', specialty: '🛶 Food — the floating markets', attractions: 'The Cai Rang floating market, tropical fruit orchards, coconut-candy workshops, and river homestays.', bestTime: 'November to April, in the dry season.' },
     ],
   },
   {
@@ -5378,12 +5401,12 @@ const REGION_GUIDE: RegionCountry[] = [
   {
     id: 'thailand', name: 'Thailand', flag: '🇹🇭',
     regions: [
-      { name: 'Bangkok', image: img('1663074958903-879f50268f6a', 800, 600), description: 'A dizzying capital of gilded temples, canal markets, and some of the best street food on the planet.', specialty: '🍜 Food — street food & the Grand Palace' },
-      { name: 'Chiang Mai', image: img('1780776145695-634f694ec0b3', 800, 600), description: 'The rose of the north, ringed by mountain temples and lit each November by thousands of sky lanterns.', specialty: '🏮 Festival — Yi Peng lanterns' },
-      { name: 'Ayutthaya', image: img('1671597728617-32d19c352c4d', 800, 600), description: 'The ruined former royal capital, its brick prangs and headless Buddhas set on a river island.', specialty: '🏯 Heritage — the ruined royal capital' },
-      { name: 'Phuket', image: img('1593406546667-cc6e00f320d2', 800, 600), description: 'The largest island, fringed with Andaman beaches and anchored by a Sino-Portuguese old town.', specialty: '🏝️ Heritage — Andaman beaches' },
-      { name: 'Krabi', image: img('1688052200242-71fb260bd5a4', 800, 600), description: 'Sheer limestone cliffs and hidden lagoons around Railay and the Phi Phi islands.', specialty: '🚤 Heritage — the limestone coast' },
-      { name: 'Sukhothai', image: img('1750635410070-62b74dfb7a19', 800, 600), description: 'The first Thai kingdom, its lotus-bud stupas and walking Buddhas set in a tranquil historical park.', specialty: '🛕 Heritage — the dawn of Siam' },
+      { name: 'Bangkok', image: img('1663074958903-879f50268f6a', 800, 600), description: 'A dizzying capital of gilded temples, canal markets, and some of the best street food on the planet.', specialty: '🍜 Food — street food & the Grand Palace', attractions: 'The Grand Palace, Wat Pho and Wat Arun, Chatuchak Market, and Chinatown\'s street food.', bestTime: 'November to February, when it is cool and dry.' },
+      { name: 'Chiang Mai', image: img('1780776145695-634f694ec0b3', 800, 600), description: 'The rose of the north, ringed by mountain temples and lit each November by thousands of sky lanterns.', specialty: '🏮 Festival — Yi Peng lanterns', attractions: 'Doi Suthep, the old-city temples, the Sunday Walking Street, and the Yi Peng lantern festival.', bestTime: 'November to February, in the cool season.' },
+      { name: 'Ayutthaya', image: img('1671597728617-32d19c352c4d', 800, 600), description: 'The ruined former royal capital, its brick prangs and headless Buddhas set on a river island.', specialty: '🏯 Heritage — the ruined royal capital', attractions: 'Wat Mahathat\'s Buddha head in the tree roots, Wat Chaiwatthanaram, and the historical park by bicycle.', bestTime: 'November to February, dry and a little cooler.' },
+      { name: 'Phuket', image: img('1593406546667-cc6e00f320d2', 800, 600), description: 'The largest island, fringed with Andaman beaches and anchored by a Sino-Portuguese old town.', specialty: '🏝️ Heritage — Andaman beaches', attractions: 'Patong and Kata beaches, Old Phuket Town, the Big Buddha, and Phi Phi island day trips.', bestTime: 'November to April, in the dry season.' },
+      { name: 'Krabi', image: img('1688052200242-71fb260bd5a4', 800, 600), description: 'Sheer limestone cliffs and hidden lagoons around Railay and the Phi Phi islands.', specialty: '🚤 Heritage — the limestone coast', attractions: 'Railay Beach, Phra Nang Cave, the Phi Phi Islands, and the Emerald Pool.', bestTime: 'November to March, for dry weather and calm seas.' },
+      { name: 'Sukhothai', image: img('1750635410070-62b74dfb7a19', 800, 600), description: 'The first Thai kingdom, its lotus-bud stupas and walking Buddhas set in a tranquil historical park.', specialty: '🛕 Heritage — the dawn of Siam', attractions: 'Wat Mahathat, the giant seated Buddha at Wat Si Chum, and the Loy Krathong festivities by night.', bestTime: 'November to February, in the cool season.' },
     ],
   },
   {
@@ -5464,60 +5487,266 @@ const REGION_GUIDE: RegionCountry[] = [
   {
     id: 'japan', name: 'Japan', flag: '🇯🇵',
     regions: [
-      { name: 'Tokyo', image: img('1748878665650-93b8a8908d38', 800, 600), description: 'The electric capital, where neon districts and centuries-old shrines sit within a single train ride of each other.', specialty: '🏙️ Heritage — neon city & old shrines' },
-      { name: 'Kyoto', image: img('1574236170880-fbbca132d83d', 800, 600), description: 'The old imperial capital of some two thousand temples and shrines, geisha lanes, and raked stone gardens.', specialty: '⛩️ Heritage — temples & geisha districts' },
-      { name: 'Mount Fuji', image: img('1599173705513-0880f530cd3d', 800, 600), description: 'The nation\'s sacred, snow-capped symbol, mirrored in the five lakes and hot-spring towns of Hakone.', specialty: '🗻 Heritage — the sacred peak & onsen' },
-      { name: 'Osaka', image: img('1756211572227-0eb27735759a', 800, 600), description: 'The nation\'s boisterous kitchen, famous for takoyaki, okonomiyaki, and the neon canals of Dotonbori.', specialty: '🍢 Food — the kitchen of Japan' },
-      { name: 'Nara', image: img('1574236170890-b7c8f6555734', 800, 600), description: 'The first permanent capital, where free-roaming deer bow for crackers beneath the Great Buddha of Todai-ji.', specialty: '🦌 Heritage — the deer park & Todai-ji' },
-      { name: 'Hokkaido', image: img('1738878165091-86c056eb238d', 800, 600), description: 'The wild northern island of powder-snow ski fields, summer flower farms, and volcanic hot springs.', specialty: '❄️ Heritage — powder snow & hot springs' },
+      { name: 'Tokyo', image: img('1748878665650-93b8a8908d38', 800, 600), description: 'The electric capital, where neon districts and centuries-old shrines sit within a single train ride of each other.', specialty: '🏙️ Heritage — neon city & old shrines', attractions: 'Senso-ji, Shibuya Crossing, the Meiji Shrine, teamLab, and the Tsukiji outer market.', bestTime: 'March to April for cherry blossom, and October to November for autumn colour.' },
+      { name: 'Kyoto', image: img('1574236170880-fbbca132d83d', 800, 600), description: 'The old imperial capital of some two thousand temples and shrines, geisha lanes, and raked stone gardens.', specialty: '⛩️ Heritage — temples & geisha districts', attractions: 'Fushimi Inari, Kinkaku-ji, the Arashiyama bamboo grove, and the Gion geisha district.', bestTime: 'March to April and November, for blossom and maple leaves.' },
+      { name: 'Mount Fuji', image: img('1599173705513-0880f530cd3d', 800, 600), description: 'The nation\'s sacred, snow-capped symbol, mirrored in the five lakes and hot-spring towns of Hakone.', specialty: '🗻 Heritage — the sacred peak & onsen', attractions: 'Lake Kawaguchi, the Chureito Pagoda, the Hakone hot springs, and the Fuji Five Lakes.', bestTime: 'April to May and October for clear views; July to August to climb.' },
+      { name: 'Osaka', image: img('1756211572227-0eb27735759a', 800, 600), description: 'The nation\'s boisterous kitchen, famous for takoyaki, okonomiyaki, and the neon canals of Dotonbori.', specialty: '🍢 Food — the kitchen of Japan', attractions: 'Dotonbori, Osaka Castle, the Kuromon Market, and Universal Studios Japan.', bestTime: 'March to May and October to November, for mild weather.' },
+      { name: 'Nara', image: img('1574236170890-b7c8f6555734', 800, 600), description: 'The first permanent capital, where free-roaming deer bow for crackers beneath the Great Buddha of Todai-ji.', specialty: '🦌 Heritage — the deer park & Todai-ji', attractions: 'The Great Buddha of Todai-ji, the bowing deer of Nara Park, and the lanterns of Kasuga Taisha.', bestTime: 'March to May and October to November.' },
+      { name: 'Hokkaido', image: img('1738878165091-86c056eb238d', 800, 600), description: 'The wild northern island of powder-snow ski fields, summer flower farms, and volcanic hot springs.', specialty: '❄️ Heritage — powder snow & hot springs', attractions: 'Niseko\'s powder snow, the Furano flower fields, the Otaru canal, and Noboribetsu hot springs.', bestTime: 'January to February for skiing, and June to August for flowers.' },
     ],
   },
   {
     id: 'china', name: 'China', flag: '🇨🇳',
     regions: [
-      { name: 'Beijing', image: img('1603120527222-33f28c2ce89e', 800, 600), description: 'The imperial capital of the vast Forbidden City, Tiananmen Square, and the Temple of Heaven.', specialty: '🏯 Heritage — the Forbidden City' },
-      { name: 'The Great Wall', image: img('1514920735211-8c697444a248', 800, 600), description: 'Thousands of kilometres of rampart snaking along the northern ridgelines, best walked at Mutianyu.', specialty: '🧱 Heritage — the Great Wall' },
-      { name: 'Shanghai', image: img('1538428494232-9c0d8a3ab403', 800, 600), description: 'The dazzling financial metropolis, where the colonial Bund faces the futuristic towers of Pudong.', specialty: '🏙️ Heritage — the Bund & Pudong' },
-      { name: "Xi'an", image: img('1527922891260-918d42a4efc8', 800, 600), description: 'The eastern end of the Silk Road, guarded for two millennia by the buried Terracotta Army.', specialty: '🗿 Heritage — the Terracotta Army' },
-      { name: 'Guilin', image: img('1600623305065-140c9031f631', 800, 600), description: 'A dreamscape of karst peaks and the Li River, the scene painted on the back of the 20-yuan note.', specialty: '🏞️ Heritage — the Li River karsts' },
-      { name: 'Chengdu', image: img('1551650045-fc958c7b0452', 800, 600), description: 'The laid-back Sichuan capital, home of fiery hotpot and the mist-wrapped giant panda reserves.', specialty: '🐼 Food — pandas & Sichuan hotpot' },
+      { name: 'Beijing', image: img('1603120527222-33f28c2ce89e', 800, 600), description: 'The imperial capital of the vast Forbidden City, Tiananmen Square, and the Temple of Heaven.', specialty: '🏯 Heritage — the Forbidden City', attractions: 'The Forbidden City, Tiananmen Square, the Temple of Heaven, and the Mutianyu Great Wall.', bestTime: 'September to October for crisp clear days, and April to May.' },
+      { name: 'The Great Wall', image: img('1514920735211-8c697444a248', 800, 600), description: 'Thousands of kilometres of rampart snaking along the northern ridgelines, best walked at Mutianyu.', specialty: '🧱 Heritage — the Great Wall', attractions: 'The restored ramparts at Mutianyu and Badaling, and the wilder Jinshanling section.', bestTime: 'September to October, cool and clear.' },
+      { name: 'Shanghai', image: img('1538428494232-9c0d8a3ab403', 800, 600), description: 'The dazzling financial metropolis, where the colonial Bund faces the futuristic towers of Pudong.', specialty: '🏙️ Heritage — the Bund & Pudong', attractions: 'The Bund, Yu Garden, the Pudong skyline, and the former French Concession.', bestTime: 'March to May and September to November, for mild weather.' },
+      { name: "Xi'an", image: img('1527922891260-918d42a4efc8', 800, 600), description: 'The eastern end of the Silk Road, guarded for two millennia by the buried Terracotta Army.', specialty: '🗿 Heritage — the Terracotta Army', attractions: 'The Terracotta Army, the city walls, the Muslim Quarter, and the Big Wild Goose Pagoda.', bestTime: 'March to May and September to October.' },
+      { name: 'Guilin', image: img('1600623305065-140c9031f631', 800, 600), description: 'A dreamscape of karst peaks and the Li River, the scene painted on the back of the 20-yuan note.', specialty: '🏞️ Heritage — the Li River karsts', attractions: 'Li River cruises to Yangshuo, the Longji rice terraces, and Reed Flute Cave.', bestTime: 'April to October, when the hills are lush and green.' },
+      { name: 'Chengdu', image: img('1551650045-fc958c7b0452', 800, 600), description: 'The laid-back Sichuan capital, home of fiery hotpot and the mist-wrapped giant panda reserves.', specialty: '🐼 Food — pandas & Sichuan hotpot', attractions: 'The Giant Panda Base, Jinli old street, Mount Qingcheng, and Sichuan hotpot.', bestTime: 'March to June and September to November.' },
     ],
   },
 ]
 
+// Session cache of preview clips that have already loaded once, so revisiting a
+// destination skips the skeleton and the browser serves the video from cache.
+const seenPreviews = new Set<string>()
+
+const CTL_CLASS =
+  'grid h-8 w-8 place-items-center rounded-full bg-black/45 text-white text-xs leading-none backdrop-blur-sm transition-colors hover:bg-[var(--color-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white'
+
+/**
+ * A cinematic ~10-second preview player for a region. Autoplays muted and
+ * loops while open, crossfades over a high-quality hero image, and degrades
+ * gracefully to that image when no clip is available or a load fails. Includes
+ * a loading skeleton, a progress bar, and mute / replay / fullscreen controls.
+ */
+function RegionPreviewPlayer({
+  src,
+  poster,
+  title,
+  country,
+  onClose,
+}: {
+  src?: string
+  poster: string
+  title: string
+  country: RegionCountry
+  onClose: () => void
+}) {
+  const t = useT()
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [loaded, setLoaded] = useState(() => (src ? seenPreviews.has(src) : false))
+  const [failed, setFailed] = useState(false)
+  const [playing, setPlaying] = useState(true)
+  const [muted, setMuted] = useState(true)
+  const [progress, setProgress] = useState(0)
+  const hasVideo = !!src && !failed
+
+  const reveal = () => {
+    if (src) seenPreviews.add(src)
+    setLoaded(true)
+  }
+  const togglePlay = () => {
+    const v = videoRef.current
+    if (!v) return
+    if (v.paused) { void v.play(); setPlaying(true) } else { v.pause(); setPlaying(false) }
+  }
+  const toggleMute = () => {
+    const v = videoRef.current
+    if (!v) return
+    v.muted = !v.muted
+    setMuted(v.muted)
+  }
+  const replay = () => {
+    const v = videoRef.current
+    if (!v) return
+    v.currentTime = 0
+    void v.play()
+    setPlaying(true)
+  }
+  const fullscreen = () => {
+    const v = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null
+    if (!v) return
+    if (v.requestFullscreen) void v.requestFullscreen()
+    else v.webkitEnterFullscreen?.()
+  }
+
+  return (
+    <div className="relative aspect-video w-full overflow-hidden bg-black">
+      {/* Hero image — the base layer and the graceful fallback */}
+      <img
+        src={poster}
+        alt={title}
+        decoding="async"
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+          hasVideo && loaded ? 'opacity-0' : 'opacity-100'
+        }`}
+      />
+
+      {hasVideo && (
+        <video
+          ref={videoRef}
+          key={src}
+          src={src}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+          onLoadedData={reveal}
+          onCanPlay={reveal}
+          onError={() => setFailed(true)}
+          onTimeUpdate={(e) => {
+            const v = e.currentTarget
+            if (v.duration) setProgress(v.currentTime / v.duration)
+          }}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+            loaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      )}
+
+      {/* Loading skeleton */}
+      {hasVideo && !loaded && (
+        <div className="absolute inset-0 grid place-items-center">
+          <div className="skeleton-shimmer absolute inset-0" />
+          <div className="relative flex items-center gap-2 font-mono text-xs text-white/85">
+            <span className="lang-spin inline-block h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white" />
+            {t('loadingPreview')}
+          </div>
+        </div>
+      )}
+
+      {/* Legibility gradient */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/30" />
+
+      {/* Close */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label={t('closePanel')}
+        className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/85"
+      >
+        ✕
+      </button>
+
+      {/* Preview badge */}
+      {hasVideo && (
+        <span className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-white backdrop-blur-sm">
+          <span className="rec-pulse inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]" />
+          {t('previewBadge')}
+        </span>
+      )}
+
+      {/* Title + controls */}
+      <div className="absolute inset-x-0 bottom-0 z-10 p-5">
+        <div className="mb-1 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-white/75">
+          <span className="text-base leading-none">{country.flag}</span>
+          {country.name}
+        </div>
+        <h3 className="font-carve text-3xl text-white drop-shadow sm:text-4xl">
+          <Tx>{title}</Tx>
+        </h3>
+
+        {hasVideo && (
+          <div className="mt-3 flex items-center gap-2">
+            <button type="button" onClick={togglePlay} aria-label={t('playLabel')} className={CTL_CLASS}>
+              {playing ? '❚❚' : '▶'}
+            </button>
+            <button type="button" onClick={toggleMute} aria-label={muted ? t('unmuteLabel') : t('muteLabel')} className={CTL_CLASS}>
+              {muted ? '🔇' : '🔊'}
+            </button>
+            <button type="button" onClick={replay} aria-label={t('replayLabel')} className={CTL_CLASS}>
+              ↻
+            </button>
+            <button type="button" onClick={fullscreen} aria-label={t('fullscreenLabel')} className={`${CTL_CLASS} hidden sm:grid`}>
+              ⤢
+            </button>
+            <div className="ml-1 h-1 flex-1 overflow-hidden rounded-full bg-white/25">
+              <div className="h-full bg-white transition-[width] duration-200 ease-linear" style={{ width: `${progress * 100}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// A labelled subtitle row in the region info panel. The label is a fixed UI
+// string (localized via t); the value is editorial content auto-translated
+// through <Tx>, so the panel never mixes languages.
+function RegionInfoRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="border-t border-[var(--color-border)] pt-4 first:border-t-0 first:pt-0">
+      <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.25em] text-[var(--color-primary)]">{label}</div>
+      <div className="font-thin-body text-base leading-relaxed text-[var(--color-foreground)]">{children}</div>
+    </div>
+  )
+}
+
 function RegionDetail({ region, country, onClose }: { region: Region; country: RegionCountry; onClose: () => void }) {
+  const t = useT()
+  const j = useJourney()
+  const tripId = `region:${country.id}:${region.name}`
+  const saved = j.has(tripId)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  const video = regionVideoFor(country.id, region)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="film-rise relative w-full max-w-2xl overflow-hidden rounded-lg bg-[var(--color-card)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="relative aspect-[16/10] w-full overflow-hidden">
-          <img src={region.image} alt={region.name} className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+      <div
+        key={region.name}
+        className="film-rise relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-[var(--color-card)] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Re-keyed so switching destinations tears down the old clip (pausing
+            it) and mounts a fresh player for the new one. */}
+        <RegionPreviewPlayer
+          key={region.name}
+          src={video}
+          poster={region.image}
+          title={region.name}
+          country={country}
+          onClose={onClose}
+        />
+
+        {/* Auto-translating subtitle panel */}
+        <div className="grid gap-4 overflow-y-auto p-6">
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/80"
+            onClick={() => j.toggle({ id: tripId, kind: 'region', title: region.name, subtitle: country.name, image: region.image })}
+            aria-pressed={saved}
+            className={`flex items-center gap-2 self-start rounded-full border px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors ${
+              saved
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                : 'border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+            }`}
           >
-            ✕
+            {saved ? '✓' : '＋'} <Tx>{saved ? 'Saved to My Trips' : 'Add to My Trips'}</Tx>
           </button>
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <div className="mb-1 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-white/75">
-              <span className="text-base leading-none">{country.flag}</span>{country.name}
-            </div>
-            <h3 className="font-carve text-4xl text-white drop-shadow"><Tx>{region.name}</Tx></h3>
-          </div>
-        </div>
-        <div className="p-6">
-          <span className="inline-block rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] px-3 py-1 font-mono text-xs tracking-wide text-[var(--color-foreground)]">
+          <RegionInfoRow label={t('introLabel')}>
+            <Tx>{region.description}</Tx>
+          </RegionInfoRow>
+          {region.attractions && (
+            <RegionInfoRow label={t('attractionsLabel')}>
+              <Tx>{region.attractions}</Tx>
+            </RegionInfoRow>
+          )}
+          <RegionInfoRow label={t('specialtyLabel')}>
             <Tx>{region.specialty}</Tx>
-          </span>
-          <p className="mt-4 font-thin-body text-lg leading-relaxed text-[var(--color-foreground)]"><Tx>{region.description}</Tx></p>
+          </RegionInfoRow>
+          {region.bestTime && (
+            <RegionInfoRow label={t('bestTimeLabel')}>
+              <Tx>{region.bestTime}</Tx>
+            </RegionInfoRow>
+          )}
         </div>
       </div>
     </div>
@@ -5544,7 +5773,7 @@ function RegionExplorer({ currentCountryId }: { currentCountryId: string }) {
   return (
     <section className="mb-16">
       <div className="mb-6">
-        <div className="font-mono text-xs uppercase tracking-[0.35em] text-[var(--color-primary)]">{t('regionEyebrow')}</div>
+        <div className="accent-gradient inline-block font-mono text-xs uppercase tracking-[0.35em]">{t('regionEyebrow')}</div>
         <h2 className="mt-2 font-carve text-4xl">
           <span className="script-rule">{t('regionTitle')}</span>
         </h2>
@@ -5589,6 +5818,7 @@ function RegionExplorer({ currentCountryId }: { currentCountryId: string }) {
                 src={r.image}
                 alt={r.name}
                 loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
@@ -5706,6 +5936,8 @@ function FestivalCalendar() {
               src={rep.image}
               alt=""
               aria-hidden="true"
+              loading="lazy"
+              decoding="async"
               className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms] ease-in-out ${
                 activeMonth === i + 1 ? 'opacity-25' : 'opacity-0'
               }`}
@@ -5860,13 +6092,16 @@ function BudgetBar({ country }: { country: Country }) {
         </div>
       </div>
 
-      {/* Stacked bar with smooth segment animation */}
-      <div className="h-3 flex rounded-none overflow-hidden mb-5 bg-[var(--color-muted)]">
-        {byCategory.filter((b) => b.sum > 0).map(({ cat, pct }) => (
+      {/* Stacked bar — segments animate in from left on mount */}
+      <div className="h-3 flex rounded-none overflow-hidden mb-5">
+        {byCategory.filter((b) => b.sum > 0).map(({ cat, pct }, i) => (
           <div
             key={cat}
-            style={{ width: `${pct}%`, backgroundColor: CATEGORY_COLORS[cat] }}
-            className="transition-all duration-700 ease-out h-full"
+            style={{
+              width: `${pct}%`,
+              backgroundColor: CATEGORY_COLORS[cat],
+              animation: `grow-w 0.7s cubic-bezier(0.22,1,0.36,1) ${i * 80}ms both`,
+            }}
             title={`${t('cat_' + cat)}: ${Math.round(pct)}%`}
           />
         ))}
@@ -5894,38 +6129,56 @@ function BudgetBar({ country }: { country: Country }) {
 function DayCard({ day, country, isActive, onClick }: { day: Day; country: Country; isActive: boolean; onClick: () => void }) {
   const lang = useContext(LangContext)
   const dayTotal = day.activities.reduce((s, a) => s + a.cost, 0)
+  const thumb = day.coverImage.replace(/w=\d+/, 'w=120').replace(/h=\d+/, 'h=120')
 
   return (
+    <div className="relative">
+    <div className="absolute right-1.5 top-1.5 z-10">
+      <SaveButton
+        item={{
+          id: `day:${country.id}:${day.day}`,
+          kind: 'day',
+          title: day.city.split(' — ')[0],
+          subtitle: `${dayLabel(lang, day.day)} · ${day.date}`,
+          image: day.coverImage.replace(/w=\d+/, 'w=160').replace(/h=\d+/, 'h=160'),
+          accent: country.accent,
+        }}
+        className="h-6 w-6 text-xs"
+      />
+    </div>
     <button
       onClick={onClick}
-      className={`w-full text-left border transition-all duration-200 overflow-hidden ${
+      className={`group w-full text-left border transition-all duration-200 overflow-hidden ${
         isActive
-          ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
-          : 'border-[var(--color-border)] bg-[var(--color-card)] hover:border-[var(--color-primary)] hover:bg-[var(--color-muted)]'
+          ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-primary-foreground)] shadow-[0_8px_24px_-10px_var(--color-primary)]'
+          : 'border-[var(--color-border)] bg-[var(--color-card)] hover:border-[var(--color-primary)] hover:bg-[var(--color-muted)] hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-12px_color-mix(in_srgb,var(--color-primary)_45%,transparent)]'
       }`}
     >
-      <div className="p-2.5 flex items-center gap-3">
-        {day.coverImage && (
-          <img
-            src={day.coverImage}
-            alt=""
-            className="w-11 h-11 rounded object-cover flex-shrink-0 border border-black/10 shadow-sm"
-            loading="lazy"
-          />
-        )}
-        <div className="flex-1 min-w-0">
-          <div className={`font-mono text-[11px] mb-0.5 ${isActive ? 'opacity-70' : 'text-[var(--color-muted-foreground)]'}`}>
+      <div className="flex items-stretch">
+        <div className="p-3 flex-1 min-w-0">
+          <div className={`font-mono text-xs mb-0.5 ${isActive ? 'opacity-70' : 'text-[var(--color-muted-foreground)]'}`}>
             {dayLabel(lang, day.day)} · {day.date}
           </div>
-          <div className={`font-display text-sm font-600 leading-tight truncate ${isActive ? '' : 'text-[var(--color-foreground)]'}`}>
-            <Tx>{day.city.split(' — ')[0]}</Tx>
+          <div className={`font-display text-sm font-600 leading-tight ${isActive ? '' : 'text-[var(--color-foreground)]'}`}>
+            {day.city.split(' — ')[0]}
           </div>
-          <div className={`font-mono text-xs mt-0.5 ${isActive ? 'opacity-80' : 'text-[var(--color-muted-foreground)]'}`}>
+          <div className={`font-mono text-xs mt-1 ${isActive ? 'opacity-80' : 'text-[var(--color-muted-foreground)]'}`}>
             {formatMoney(dayTotal, country)}
           </div>
         </div>
+        <div className="hidden lg:block w-14 flex-shrink-0 overflow-hidden">
+          <img
+            src={thumb}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
+            className={`w-full h-full object-cover transition-all duration-500 ${isActive ? 'opacity-40' : 'opacity-70 group-hover:opacity-100 group-hover:scale-110'}`}
+          />
+        </div>
       </div>
     </button>
+    </div>
   )
 }
 
@@ -6012,7 +6265,7 @@ function HeroMedia({ videoSrc, image, alt }: { videoSrc?: string; image: string;
   return (
     <>
       {/* Base image — first paint + permanent fallback */}
-      <img src={image} alt={alt} className="absolute inset-0 h-full w-full object-cover" />
+      <img src={image} alt={alt} decoding="async" className="absolute inset-0 h-full w-full object-cover" />
       {layers.map((l, i) => (
         <VideoLayer
           key={l.id}
@@ -6074,34 +6327,25 @@ function VideoLayer({
 function DayDetail({ day, country }: { day: Day; country: Country }) {
   const t = useT()
   const lang = useContext(LangContext)
-  const [selectedCat, setSelectedCat] = useState<string>('all')
-  const [search, setSearch] = useState('')
-
   const dayTotal = day.activities.reduce((s, a) => s + a.cost, 0)
   const hasFood = day.activities.some((a) => a.category === 'food')
   const heroVideo = heroVideoFor(country.id, day.city)
-
-  const filteredActivities = day.activities.filter((a) => {
-    const matchesCat = selectedCat === 'all' || a.category === selectedCat
-    const matchesSearch = !search.trim() || 
-      a.title.toLowerCase().includes(search.toLowerCase()) || 
-      a.description.toLowerCase().includes(search.toLowerCase())
-    return matchesCat && matchesSearch
-  })
 
   return (
     <div>
       {/* Hero */}
       <div className="relative h-52 overflow-hidden bg-[var(--color-muted)] mb-6">
         <HeroMedia videoSrc={heroVideo} image={day.coverImage} alt={day.coverAlt} />
+        {/* Dark overlay keeps the title & subtitle readable over any footage */}
         <div className="absolute inset-0 bg-black/35" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        {/* Steam drifts up when the day includes a meal worth lingering over */}
         {hasFood && <Steam />}
         <div className="absolute bottom-0 left-0 right-0 p-5">
           <div className="font-mono text-xs text-white/70 mb-1">{dayLabel(lang, day.day)} · {day.date}</div>
-          <h2 className="font-display text-2xl font-600 text-white leading-tight"><Tx>{day.city}</Tx></h2>
+          <h2 className="font-display text-2xl font-600 text-white leading-tight">{day.city}</h2>
           <div className="font-mono text-xs text-white/80 mt-2">
-            <span className="mr-1">→</span><Tx>{day.transport}</Tx>
+            <span className="mr-1">→</span>{day.transport}
           </div>
         </div>
       </div>
@@ -6109,84 +6353,50 @@ function DayDetail({ day, country }: { day: Day; country: Country }) {
       {/* Activities */}
       <div className="bg-[var(--color-card)] border border-[var(--color-border)] mb-4 overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-3 border-b border-[var(--color-border)] flex flex-wrap items-center justify-between gap-3 bg-[var(--color-muted)]/50">
+        <div className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-muted)]/50">
           <div className="flex items-center gap-2.5">
             <span className="font-display text-base font-600">{t('schedule')}</span>
             <span
               className="font-mono text-[9px] uppercase tracking-widest px-2 py-[3px] rounded-full"
               style={{ backgroundColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
             >
-              {filteredActivities.length} / {day.activities.length} stops
+              {day.activities.length} stops
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search stops..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-32 sm:w-44 rounded-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-1 text-xs outline-none focus:border-[var(--color-primary)] font-mono text-[var(--color-foreground)]"
-              />
-              {search && (
-                <button onClick={() => setSearch('')} className="absolute right-2.5 top-1 text-xs text-[var(--color-muted-foreground)]">✕</button>
-              )}
-            </div>
-            <span className="font-mono text-sm font-600 text-[var(--color-primary)]">
-              {formatMoney(dayTotal, country)} {t('today')}
-            </span>
-          </div>
+          <span className="font-mono text-sm font-600 text-[var(--color-primary)]">
+            {formatMoney(dayTotal, country)} {t('today')}
+          </span>
         </div>
 
-        {/* Category Filter Pills */}
-        <div className="px-5 py-2 border-b border-[var(--color-border)] flex gap-2 flex-wrap items-center bg-[var(--color-muted)]/20">
-          <button
-            onClick={() => setSelectedCat('all')}
-            className={`font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
-              selectedCat === 'all'
-                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white font-600'
-                : 'border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]'
-            }`}
-          >
-            All ({day.activities.length})
-          </button>
-          {(Object.keys(CATEGORY_COLORS) as Activity['category'][]).map((cat) => {
-            const count = day.activities.filter((a) => a.category === cat).length
-            if (count === 0) return null
-            const isSel = selectedCat === cat
-            return (
-              <button
-                key={cat}
-                onClick={() => setSelectedCat(isSel ? 'all' : cat)}
-                className={`font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full border transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isSel
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white font-600'
-                    : 'border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]'
-                }`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[cat] }} />
-                {t('cat_' + cat)} ({count})
-              </button>
-            )
-          })}
-        </div>
+        {/* Category legend */}
+        {(() => {
+          const cats = (Object.keys(CATEGORY_COLORS) as Activity['category'][]).filter(
+            (cat) => day.activities.some((a) => a.category === cat),
+          )
+          return cats.length > 1 ? (
+            <div className="px-5 py-2 border-b border-[var(--color-border)] flex gap-4 flex-wrap">
+              {cats.map((cat) => (
+                <div key={cat} className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[cat] }} />
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
+                    {CATEGORY_LABELS[cat]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null
+        })()}
 
         {/* Timeline */}
         <div className="px-5 pt-5 pb-3">
-          {filteredActivities.length > 0 ? (
-            filteredActivities.map((activity, i) => (
-              <ActivityRow
-                key={i}
-                activity={activity}
-                country={country}
-                isLast={i === filteredActivities.length - 1}
-              />
-            ))
-          ) : (
-            <div className="py-8 text-center font-mono text-xs text-[var(--color-muted-foreground)] uppercase tracking-wider">
-              No stops match your search
-            </div>
-          )}
+          {day.activities.map((activity, i) => (
+            <ActivityRow
+              key={i}
+              activity={activity}
+              country={country}
+              isLast={i === day.activities.length - 1}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -6216,6 +6426,64 @@ function CountryTabs({ countries, activeId, onSelect }: { countries: Country[]; 
           </button>
         )
       })}
+    </div>
+  )
+}
+
+// ─── Journey progress rail — position across the whole grand tour ──────────
+// A slim stamped rail beneath the country tabs: one node per leg, a filled
+// thread up to the current country, and prev/next stepping arrows. Reads the
+// active country's accent so it recolours in lockstep with the passport flip.
+function JourneyProgress({ countries, activeId, onSelect }: { countries: Country[]; activeId: string; onSelect: (id: string) => void }) {
+  const t = useT()
+  const idx = Math.max(0, countries.findIndex((c) => c.id === activeId))
+  const total = countries.length
+  const pct = total > 1 ? (idx / (total - 1)) * 100 : 0
+  const go = (delta: number) => {
+    const next = Math.min(total - 1, Math.max(0, idx + delta))
+    if (next !== idx) onSelect(countries[next].id)
+  }
+  const arrow = 'grid h-6 w-6 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-xs text-[var(--color-muted-foreground)] transition-colors hover:enabled:border-[var(--color-primary)] hover:enabled:text-[var(--color-primary)] disabled:opacity-30 disabled:cursor-not-allowed'
+  return (
+    <div className="flex items-center gap-3 pt-1.5 pb-2.5">
+      <span className="hidden font-mono text-[10px] uppercase tracking-widest text-[var(--color-muted-foreground)] sm:inline">
+        {t('legOf').replace('{n}', String(idx + 1)).replace('{total}', String(total))}
+      </span>
+      <button type="button" onClick={() => go(-1)} disabled={idx === 0} aria-label={t('prevCountry')} className={arrow}>‹</button>
+      <div className="relative h-[3px] flex-1 rounded-full bg-[var(--color-border)]">
+        <div
+          className="thread-flow absolute inset-y-0 left-0 rounded-full"
+          style={{ width: `${pct}%`, transition: 'width 0.6s cubic-bezier(0.2,0.7,0.2,1)' }}
+        />
+        <div className="absolute inset-0 flex items-center justify-between">
+          {countries.map((c, i) => {
+            const done = i <= idx
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onSelect(c.id)}
+                aria-label={c.name}
+                title={`${c.flag} ${c.name}`}
+                className="grid place-items-center focus-visible:outline-none"
+                style={{ transition: 'transform 0.3s ease' }}
+              >
+                <span
+                  className={`block rounded-full ${i === idx ? 'glow-breathe' : ''}`}
+                  style={{
+                    width: i === idx ? 11 : 7,
+                    height: i === idx ? 11 : 7,
+                    background: done ? 'var(--color-primary)' : 'var(--color-card)',
+                    border: `1.5px solid ${done ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                    transition: 'width 0.3s ease, height 0.3s ease, background 0.3s ease, border-color 0.3s ease',
+                  }}
+                />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <button type="button" onClick={() => go(1)} disabled={idx === total - 1} aria-label={t('nextCountry')} className={arrow}>›</button>
     </div>
   )
 }
@@ -6268,472 +6536,12 @@ const useCountryTheme = () => useContext(CountryThemeContext)
 
 // Full-screen country backdrop — old image crossfades to new over 1 second,
 // blurred and darkened for legibility, with a faint accent pattern on top.
-// ─── Discover Vietnam — Journeys & Flavors From Every Region ─────────────────
-
-// ─── Interactive Specialty Cart Drawer ─────────────────────────────────────
-
-interface CartItem {
-  id: string
-  name: string
-  country: string
-  flag: string
-  priceUsd: number
-  qty: number
-}
-
-function SpecialtyCartDrawer({
-  cart,
-  onUpdateQty,
-  onRemove,
-  onClose,
-}: {
-  cart: CartItem[]
-  onUpdateQty: (id: string, delta: number) => void
-  onRemove: (id: string) => void
-  onClose: () => void
-}) {
-  const [checkedOut, setCheckedOut] = useState(false)
-  const totalUsd = cart.reduce((sum, item) => sum + item.priceUsd * item.qty, 0)
-
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="w-full max-w-md bg-[var(--color-card)] border-l border-[var(--color-border)] h-full flex flex-col p-6 shadow-2xl overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 mb-4">
-          <div className="flex items-center gap-2 font-display text-xl font-600">
-            <span>🛒</span>
-            <span>Specialty Basket</span>
-            <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)] text-white">
-              {cart.reduce((s, i) => s + i.qty, 0)}
-            </span>
-          </div>
-          <button onClick={onClose} className="text-xl text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] cursor-pointer">✕</button>
-        </div>
-
-        {checkedOut ? (
-          <div className="my-auto text-center p-6 space-y-4">
-            <div className="text-5xl animate-bounce">📦</div>
-            <h3 className="font-carve text-2xl">Order Confirmed!</h3>
-            <p className="font-body text-sm text-[var(--color-muted-foreground)]">
-              Thank you for supporting regional farmers and artisans across Southeast Asia! Your specialty basket is being packed at origin.
-            </p>
-            <button
-              onClick={() => { setCheckedOut(false); onClose(); }}
-              className="px-6 py-2.5 rounded-full font-mono text-xs uppercase bg-[var(--color-primary)] text-white cursor-pointer"
-            >
-              Continue Journey
-            </button>
-          </div>
-        ) : cart.length === 0 ? (
-          <div className="my-auto text-center py-12 text-[var(--color-muted-foreground)] space-y-3 font-mono text-xs">
-            <div className="text-4xl">🍵</div>
-            <p>Your specialty basket is currently empty.</p>
-            <p className="text-[10px] text-[var(--color-muted-foreground)]">Click "Add to Basket" on any specialty product below!</p>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 space-y-4 overflow-y-auto pr-1">
-              {cart.map((item) => (
-                <div key={item.id} className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 flex items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5 font-mono text-xs font-600 text-[var(--color-primary)]">
-                      <span>{item.flag}</span>
-                      <span>{item.country}</span>
-                    </div>
-                    <div className="font-display text-sm font-600 text-[var(--color-foreground)]">{item.name}</div>
-                    <div className="font-mono text-xs text-[var(--color-muted-foreground)]">${item.priceUsd} USD</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onUpdateQty(item.id, -1)}
-                      className="w-7 h-7 rounded border border-[var(--color-border)] flex items-center justify-center font-mono text-sm hover:bg-[var(--color-muted)] cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <span className="font-mono text-sm w-4 text-center">{item.qty}</span>
-                    <button
-                      onClick={() => onUpdateQty(item.id, 1)}
-                      className="w-7 h-7 rounded border border-[var(--color-border)] flex items-center justify-center font-mono text-sm hover:bg-[var(--color-muted)] cursor-pointer"
-                    >
-                      +
-                    </button>
-                    <button
-                      onClick={() => onRemove(item.id)}
-                      className="ml-2 text-xs text-red-500 hover:text-red-700 cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-[var(--color-border)] pt-4 mt-4 space-y-3">
-              <div className="flex justify-between font-mono text-base font-600">
-                <span>Total Estimated:</span>
-                <span className="text-[var(--color-primary)]">${totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</span>
-              </div>
-              <button
-                onClick={() => setCheckedOut(true)}
-                className="w-full py-3 rounded-full font-mono text-xs uppercase tracking-widest bg-[var(--color-primary)] text-white hover:opacity-90 transition-all shadow-lg cursor-pointer"
-              >
-                Checkout Specialties
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── Custom Saved Journey Wishlist Drawer ──────────────────────────────────
-
-interface WishlistDay {
-  dayNumber: number
-  city: string
-  countryName: string
-  date: string
-  cost: number
-}
-
-function WishlistDrawer({
-  wishlist,
-  onRemove,
-  onClose,
-}: {
-  wishlist: WishlistDay[]
-  onRemove: (dayNum: number) => void
-  onClose: () => void
-}) {
-  const downloadItinerary = () => {
-    const text = `MY CUSTOM ASIAN GRAND TOUR ITINERARY\n===================================\n\n` +
-      wishlist.map((w) => `Day ${w.dayNumber}: ${w.city} (${w.countryName}) - Date: ${w.date}\n-----------------------------------`).join('\n\n') +
-      `\n\nGenerated via Asia Grand Tour App`
-
-    const blob = new Blob([text], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'my-custom-asian-tour.txt'
-    a.click()
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="w-full max-w-md bg-[var(--color-card)] border-l border-[var(--color-border)] h-full flex flex-col p-6 shadow-2xl overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 mb-4">
-          <div className="flex items-center gap-2 font-display text-xl font-600">
-            <span>❤️</span>
-            <span>Saved Journey</span>
-            <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)] text-white">
-              {wishlist.length} stops
-            </span>
-          </div>
-          <button onClick={onClose} className="text-xl text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] cursor-pointer">✕</button>
-        </div>
-
-        {wishlist.length === 0 ? (
-          <div className="my-auto text-center py-12 text-[var(--color-muted-foreground)] space-y-3 font-mono text-xs">
-            <div className="text-4xl">🗺️</div>
-            <p>You haven't saved any itinerary stops yet.</p>
-            <p className="text-[10px] text-[var(--color-muted-foreground)]">Click "❤️ Save" on any day card to build your dream tour!</p>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-              {wishlist.map((w) => (
-                <div key={w.dayNumber} className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-mono text-[10px] uppercase tracking-wider text-[var(--color-primary)]">
-                      Day {w.dayNumber} · {w.countryName}
-                    </div>
-                    <div className="font-display text-base font-600">{w.city}</div>
-                    <div className="font-mono text-xs text-[var(--color-muted-foreground)]">{w.date}</div>
-                  </div>
-                  <button
-                    onClick={() => onRemove(w.dayNumber)}
-                    className="text-xs text-red-500 hover:text-red-700 cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-[var(--color-border)] pt-4 mt-4">
-              <button
-                onClick={downloadItinerary}
-                className="w-full py-3 rounded-full font-mono text-xs uppercase tracking-widest bg-[var(--color-primary)] text-white hover:opacity-90 transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>📥</span>
-                <span>Download Custom Plan (.txt)</span>
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── Discover Southeast Asia — Journeys & Flavors From Every Corner ─────────
-
-function DiscoverSoutheastAsiaSection({
-  onExploreDestinations,
-  onAddToCart,
-}: {
-  onExploreDestinations?: () => void
-  onAddToCart?: (item: { id: string; name: string; country: string; flag: string; priceUsd: number }) => void
-}) {
-  const [subscribed, setSubscribed] = useState(false)
-  const [email, setEmail] = useState('')
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (email.trim()) {
-      setSubscribed(true)
-    }
-  }
-
-  const SEA_DESTINATIONS = [
-    { country: 'Vietnam', flag: '🇻🇳', text: "Terraced rice fields, limestone karsts, and lantern-lit old towns. Highlights include Sapa's trekking trails, Ha Long Bay, and the imperial city of Hue." },
-    { country: 'Thailand', flag: '🇹🇭', text: "Golden temples, tropical islands, and legendary street food. Explore Bangkok's markets, Chiang Mai's mountains, and the beaches of Krabi and Koh Samui." },
-    { country: 'Cambodia', flag: '🇰🇭', text: "Ancient wonders and quiet river towns. Discover the temples of Angkor, the riverside charm of Phnom Penh, and the coastal calm of Kep." },
-    { country: 'Laos', flag: '🇱🇦', text: "Slow travel at its finest. Wander the UNESCO streets of Luang Prabang, cruise the Mekong, and explore the karst landscapes of Vang Vieng." },
-    { country: 'Myanmar', flag: '🇲🇲', text: "Golden pagodas and timeless traditions. Visit the temple plains of Bagan, the waters of Inle Lake, and the streets of Yangon." },
-    { country: 'Indonesia', flag: '🇮🇩', text: "Volcanoes, rice terraces, and island life. Experience Bali's culture, Yogyakarta's temples, and the diving spots of Raja Ampat." },
-    { country: 'Malaysia', flag: '🇲🇾', text: "A crossroads of cultures. Explore Kuala Lumpur's skyline, Penang's heritage streets, and the rainforests of Borneo." },
-    { country: 'Philippines', flag: '🇵🇭', text: "Turquoise waters and thousands of islands. Discover Palawan's lagoons, Cebu's beaches, and the rice terraces of Banaue." },
-    { country: 'Singapore', flag: '🇸🇬', text: "A gateway city of gardens and global flavors. A perfect stop for a short stay or a launch point for the region." },
-    { country: 'Brunei', flag: '🇧🇳', text: "Rich heritage on the shores of Borneo. Explore the water village of Kampong Ayer and pristine rainforest reserves." },
-  ]
-
-  const SPECIALTY_PRODUCTS = [
-    { country: 'Vietnam', flag: '🇻🇳', specialty: '🍵 Shan Tuyet ancient tea, 🐟 Phu Quoc fish sauce, 🥥 coconut candy', story: 'Highland ancient tea trees & artisanal wooden barrel-aged sauces.' },
-    { country: 'Thailand', flag: '🇹🇭', specialty: '🌾 Thai jasmine rice, ☕ northern coffee, 🥭 dried mango', story: 'Hom Mali jasmine rice & Chiang Mai mountain arabica beans.' },
-    { country: 'Cambodia', flag: '🇰🇭', specialty: '🌶️ Kampot pepper, 🌴 palm sugar, 🐟 prahok', story: 'World-famous PGI Kampot pepper & traditional palm sugar.' },
-    { country: 'Laos', flag: '🇱🇦', specialty: '☕ Laotian coffee, 🌾 sticky rice, 🍵 mulberry tea', story: 'Bolaven plateau volcanic coffee & organic mulberry leaves.' },
-    { country: 'Myanmar', flag: '🇲🇲', specialty: '🍃 Shan tea leaves, 🥗 tea-leaf salad mix, 🌿 thanaka', story: 'Highland pickled tea leaves & natural Thanaka bark.' },
-    { country: 'Indonesia', flag: '🇮🇩', specialty: '☕ Bali coffee, 🌰 nutmeg, 🌶️ sambal pastes', story: 'Single-origin Kintamani coffee & Banda island spices.' },
-    { country: 'Malaysia', flag: '🇲🇾', specialty: '🌶️ Sarawak pepper, 🌿 tongkat ali, 🌴 gula melaka', story: 'Borneo rainforest Sarawak pepper & pure coconut palm sugar.' },
-    { country: 'Philippines', flag: '🇵🇭', specialty: '🍫 Cacao tablea, 🍋 calamansi products, 🥭 dried mangoes', story: 'Davao heritage cacao & sun-dried Guimaras sweet mangoes.' },
-  ]
-
-  return (
-    <section className="my-12 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-6 sm:p-10 shadow-2xl overflow-hidden relative shine-effect hover-elevate">
-      {/* Background Ambient Glows */}
-      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 rounded-full bg-[var(--color-primary)]/15 blur-3xl pointer-events-none animate-pulse-glow" />
-      <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-96 h-96 rounded-full bg-[var(--color-accent)]/15 blur-3xl pointer-events-none animate-pulse-glow" />
-
-      {/* Hero Section */}
-      <div className="mb-10 text-center max-w-3xl mx-auto">
-        <div className="font-mono text-xs uppercase tracking-[0.35em] text-[var(--color-primary)] mb-2">
-          Grand Tour Regional Showcase
-        </div>
-        <h2 className="font-carve text-3xl sm:text-5xl font-600 leading-tight mb-4 bg-gradient-to-r from-[var(--color-foreground)] via-[var(--color-primary)] to-[var(--color-foreground)] bg-clip-text text-transparent">
-          Discover Southeast Asia — Journeys & Flavors From Every Corner
-        </h2>
-        <p className="font-display text-xl italic text-[var(--color-primary)] mb-4">
-          "Explore Southeast Asia, One Story at a Time"
-        </p>
-        <p className="font-body text-base sm:text-lg text-[var(--color-muted-foreground)] leading-relaxed mb-6">
-          From the temple spires of Cambodia to the rice terraces of the Philippines, from Thailand's golden coastlines to Indonesia's volcanic islands, Southeast Asia is a region of endless wonder. We bring you closer to it all: curated travel experiences paired with the authentic local specialties that define each destination.
-        </p>
-        <p className="font-script text-2xl text-[var(--color-foreground)] mb-6">
-          *Book a journey. Taste a country. Take a piece of Southeast Asia home with you.*
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          <button
-            onClick={onExploreDestinations}
-            className="px-6 py-3 rounded-full font-mono text-xs uppercase tracking-widest bg-[var(--color-primary)] text-white hover:opacity-90 transition-all shadow-md lift cursor-pointer"
-          >
-            Explore Destinations
-          </button>
-          <a
-            href="#sea-specialties"
-            className="px-6 py-3 rounded-full font-mono text-xs uppercase tracking-widest border border-[var(--color-border)] bg-[var(--color-muted)] text-[var(--color-foreground)] hover:border-[var(--color-primary)] transition-all lift cursor-pointer"
-          >
-            Shop Local Specialties
-          </a>
-        </div>
-      </div>
-
-      <hr className="border-[var(--color-border)] my-10 opacity-60" />
-
-      {/* Why Travel With Us */}
-      <div className="mb-12">
-        <h3 className="font-carve text-2xl mb-6 text-center">Why Travel With Us</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="p-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 hover:border-[var(--color-primary)] transition-all">
-            <div className="text-3xl mb-3">🌏</div>
-            <h4 className="font-display text-lg font-600 mb-2">Local Expertise</h4>
-            <p className="font-body text-sm text-[var(--color-muted-foreground)]">
-              Routes designed by guides who grew up in the countries they showcase.
-            </p>
-          </div>
-          <div className="p-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 hover:border-[var(--color-primary)] transition-all">
-            <div className="text-3xl mb-3">🏺</div>
-            <h4 className="font-display text-lg font-600 mb-2">Authentic Specialties</h4>
-            <p className="font-body text-sm text-[var(--color-muted-foreground)]">
-              Sourced directly from local farmers, artisans, and family producers across the region.
-            </p>
-          </div>
-          <div className="p-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 hover:border-[var(--color-primary)] transition-all">
-            <div className="text-3xl mb-3">🗺️</div>
-            <h4 className="font-display text-lg font-600 mb-2">Flexible Itineraries</h4>
-            <p className="font-body text-sm text-[var(--color-muted-foreground)]">
-              From single-country escapes to multi-country adventures tailored to your speed.
-            </p>
-          </div>
-          <div className="p-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 hover:border-[var(--color-primary)] transition-all">
-            <div className="text-3xl mb-3">🌱</div>
-            <h4 className="font-display text-lg font-600 mb-2">Sustainable Tourism</h4>
-            <p className="font-body text-sm text-[var(--color-muted-foreground)]">
-              Partnering with local communities to protect the precious places we love.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Featured Destinations Across Southeast Asia */}
-      <div className="mb-12">
-        <h3 className="font-carve text-2xl mb-6 text-center">Featured Destinations Across Southeast Asia</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {SEA_DESTINATIONS.map((item) => (
-            <div key={item.country} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-sm hover-elevate cursor-pointer">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl leading-none animate-float">{item.flag}</span>
-                <h4 className="font-carve text-xl text-[var(--color-primary)]">{item.country}</h4>
-              </div>
-              <p className="font-body text-sm text-[var(--color-muted-foreground)] leading-relaxed">
-                {item.text}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Taste of Southeast Asia: Specialty Products */}
-      <div id="sea-specialties" className="mb-12">
-        <h3 className="font-carve text-2xl mb-2 text-center">Taste of Southeast Asia: Specialty Products</h3>
-        <p className="font-body text-center text-sm text-[var(--color-muted-foreground)] max-w-xl mx-auto mb-6">
-          Every country has a flavor of its own. Bring it home with our curated collection of authentic Southeast Asian specialties:
-        </p>
-
-        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm">
-          <table className="w-full text-left font-mono text-sm border-collapse">
-            <thead>
-              <tr className="bg-[var(--color-muted)] border-b border-[var(--color-border)]">
-                <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Country</th>
-                <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Signature Specialty</th>
-                <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Origin & Story</th>
-                <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)] text-right">Order</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)] font-body">
-              {SPECIALTY_PRODUCTS.map((sp) => (
-                <tr key={sp.country} className="hover:bg-[var(--color-muted)]/30 transition-colors">
-                  <td className="p-4 font-mono font-600 text-[var(--color-primary)] flex items-center gap-2">
-                    <span>{sp.flag}</span>
-                    <span>{sp.country}</span>
-                  </td>
-                  <td className="p-4 font-500">{sp.specialty}</td>
-                  <td className="p-4 text-xs text-[var(--color-muted-foreground)]">{sp.story}</td>
-                  <td className="p-4 text-right">
-                    <button
-                      onClick={() =>
-                        onAddToCart?.({
-                          id: sp.country.toLowerCase(),
-                          name: sp.specialty.split(',')[0],
-                          country: sp.country,
-                          flag: sp.flag,
-                          priceUsd: 25,
-                        })
-                      }
-                      className="px-3 py-1.5 rounded-full font-mono text-[11px] uppercase tracking-wider border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white transition-all cursor-pointer shadow-sm"
-                    >
-                      🛒 Add to Basket ($25)
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* What's New This Season */}
-      <div className="mb-12 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/40 p-6 sm:p-8">
-        <h3 className="font-carve text-2xl mb-4">What's New This Season</h3>
-        <ul className="space-y-3 font-body text-base">
-          <li className="flex items-start gap-3">
-            <span className="px-2 py-0.5 rounded bg-[var(--color-primary)] text-white font-mono text-[10px] uppercase font-600">NEW</span>
-            <div><strong>New Multi-Country Routes</strong> — Combine Vietnam, Laos, and Cambodia in one seamless overland itinerary.</div>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="px-2 py-0.5 rounded bg-[var(--color-primary)] text-white font-mono text-[10px] uppercase font-600">NEW</span>
-            <div><strong>Limited-Batch Regional Boxes</strong> — Seasonal collections featuring the best specialties from across Southeast Asia, delivered monthly.</div>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="px-2 py-0.5 rounded bg-[var(--color-primary)] text-white font-mono text-[10px] uppercase font-600">NEW</span>
-            <div><strong>Community Homestay Program</strong> — Stay with local families in villages from Northern Vietnam to Central Java.</div>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="px-2 py-0.5 rounded bg-[var(--color-primary)] text-white font-mono text-[10px] uppercase font-600">NEW</span>
-            <div><strong>Sustainable Travel Certification</strong> — Our latest partner destinations across the region now meet updated eco-tourism standards.</div>
-          </li>
-        </ul>
-      </div>
-
-      {/* Join Our Community */}
-      <div className="rounded-lg border border-[var(--color-primary)] bg-[var(--color-card)] p-6 sm:p-8 text-center max-w-2xl mx-auto shadow-lg">
-        <h3 className="font-carve text-2xl mb-2">Join Our Community</h3>
-        <p className="font-body text-sm text-[var(--color-muted-foreground)] mb-6">
-          Sign up for travel inspiration, new destination guides, and first access to limited specialty product releases from across Southeast Asia.
-        </p>
-
-        {subscribed ? (
-          <div className="p-4 rounded bg-green-500/15 border border-green-500/30 text-green-700 dark:text-green-300 font-mono text-sm">
-            ✓ Welcome to the community! Check your inbox for your first Southeast Asian travel guide.
-          </div>
-        ) : (
-          <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              required
-              placeholder="Enter your email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-2.5 font-mono text-sm outline-none focus:border-[var(--color-primary)] text-[var(--color-foreground)]"
-            />
-            <button
-              type="submit"
-              className="px-6 py-2.5 rounded-full font-mono text-xs uppercase tracking-widest bg-[var(--color-primary)] text-white hover:opacity-90 transition-all shadow-md cursor-pointer"
-            >
-              Subscribe Now
-            </button>
-          </form>
-        )}
-
-        <p className="mt-6 font-script text-xl text-[var(--color-muted-foreground)]">
-          *Southeast Asia is best experienced slowly — one country, one dish, one story at a time. Let us help you find yours.*
-        </p>
-      </div>
-    </section>
-  )
-}
-
-function FloatingBackToTop() {
+function CountryBackdrop() {
   const theme = useCountryTheme()
   // Bump a key on every country change so the sweep/bloom animations restart.
   const [flip, setFlip] = useState(0)
   const prev = useRef(theme.id)
+  useEffect(() => {
     if (prev.current !== theme.id) {
       prev.current = theme.id
       setFlip((n) => n + 1)
@@ -6908,26 +6716,46 @@ const TRANSLATIONS_EXTRA: Record<string, Dict> = {
 // Schedule-section chrome, per language. Kept in its own table so it can be
 // added without touching the existing (non-ASCII) translation rows.
 const TRANSLATIONS_SCHED: Record<string, Dict> = {
-  en: { schedule: 'Schedule', today: 'today', free: 'Free' },
-  vi: { schedule: 'Lịch trình', today: 'hôm nay', free: 'Miễn phí' },
-  lo: { schedule: 'ຕາຕະລາງ', today: 'ມື້ນີ້', free: 'ຟຣີ' },
-  km: { schedule: 'កាលវិភាគ', today: 'ថ្ងៃនេះ', free: 'ឥតគិតថ្លៃ' },
-  th: { schedule: 'ตารางเวลา', today: 'วันนี้', free: 'ฟรี' },
-  my: { schedule: 'အချိန်ဇယား', today: 'ဒီနေ့', free: 'အခမဲ့' },
-  ms: { schedule: 'Jadual', today: 'hari ini', free: 'Percuma' },
-  id: { schedule: 'Jadwal', today: 'hari ini', free: 'Gratis' },
-  fil: { schedule: 'Iskedyul', today: 'ngayon', free: 'Libre' },
-  tet: { schedule: 'Oráriu', today: 'ohin', free: 'Gratis' },
-  ja: { schedule: 'スケジュール', today: '本日', free: '無料' },
-  zh: { schedule: '行程安排', today: '今日', free: '免费' },
+  en: { schedule: 'Schedule', today: 'today', free: 'Free', backToTop: 'Back to top', enterNight: 'Enter the night market', switchDaylight: 'Switch to daylight', daysRange: 'Days {a}–{b}', statDays: 'Days', statCities: 'Cities', statActivities: 'Activities', statBudget: 'Est. Budget', legOf: 'Leg {n} of {total}', prevCountry: 'Previous country', nextCountry: 'Next country', journeyTitle: 'My Journey', journeyTagline: 'Your hand-picked collection', journeyEmpty: 'Nothing saved yet — tap the ✦ on any specialty or day, or add your own idea below.', addCustomLabel: 'Add your own place, dish or wish…', addBtn: 'Add', clearAll: 'Clear', saveItem: 'Save to My Journey', savedItem: 'Saved', notePlaceholder: 'Add a note…', itemsSaved: '{n} saved', openJourney: 'Open My Journey', closePanel: 'Close', customKind: 'My idea' },
+  vi: { schedule: 'Lịch trình', today: 'hôm nay', free: 'Miễn phí', backToTop: 'Lên đầu trang', enterNight: 'Vào chợ đêm', switchDaylight: 'Chuyển sang ban ngày', daysRange: 'Ngày {a}–{b}', statDays: 'Ngày', statCities: 'Thành phố', statActivities: 'Hoạt động', statBudget: 'Ngân sách', legOf: 'Chặng {n}/{total}', prevCountry: 'Quốc gia trước', nextCountry: 'Quốc gia sau', journeyTitle: 'Hành trình của tôi', journeyTagline: 'Bộ sưu tập bạn tự chọn', journeyEmpty: 'Chưa lưu gì — chạm ✦ trên đặc sản hoặc ngày bất kỳ, hoặc tự thêm ý tưởng bên dưới.', addCustomLabel: 'Thêm địa điểm, món ăn hay điều ước của bạn…', addBtn: 'Thêm', clearAll: 'Xóa', saveItem: 'Lưu vào Hành trình', savedItem: 'Đã lưu', notePlaceholder: 'Thêm ghi chú…', itemsSaved: 'Đã lưu {n}', openJourney: 'Mở Hành trình của tôi', closePanel: 'Đóng', customKind: 'Ý tưởng của tôi' },
+  lo: { schedule: 'ຕາຕະລາງ', today: 'ມື້ນີ້', free: 'ຟຣີ', backToTop: 'ກັບຂຶ້ນເທິງ', enterNight: 'ເຂົ້າຕະຫຼາດກາງຄືນ', switchDaylight: 'ສະຫຼັບເປັນກາງວັນ', daysRange: 'ວັນທີ {a}–{b}', statDays: 'ວັນ', statCities: 'ເມືອງ', statActivities: 'ກິດຈະກຳ', statBudget: 'ງົບປະມານ' },
+  km: { schedule: 'កាលវិភាគ', today: 'ថ្ងៃនេះ', free: 'ឥតគិតថ្លៃ', backToTop: 'ត្រឡប់ទៅខាងលើ', enterNight: 'ចូលទៅផ្សារយប់', switchDaylight: 'ប្តូរទៅពេលថ្ងៃ', daysRange: 'ថ្ងៃ {a}–{b}', statDays: 'ថ្ងៃ', statCities: 'ទីក្រុង', statActivities: 'សកម្មភាព', statBudget: 'ថវិកា' },
+  th: { schedule: 'ตารางเวลา', today: 'วันนี้', free: 'ฟรี', backToTop: 'กลับขึ้นด้านบน', enterNight: 'เข้าตลาดกลางคืน', switchDaylight: 'สลับเป็นกลางวัน', daysRange: 'วันที่ {a}–{b}', statDays: 'วัน', statCities: 'เมือง', statActivities: 'กิจกรรม', statBudget: 'งบประมาณ' },
+  my: { schedule: 'အချိန်ဇယား', today: 'ဒီနေ့', free: 'အခမဲ့', backToTop: 'အပေါ်သို့ ပြန်သွား', enterNight: 'ညဈေးသို့ ဝင်ရန်', switchDaylight: 'နေ့ဘက်သို့ ပြောင်းရန်', daysRange: 'နေ့ {a}–{b}', statDays: 'ရက်', statCities: 'မြို့', statActivities: 'လှုပ်ရှားမှု', statBudget: 'ခန့်မှန်းငွေ' },
+  ms: { schedule: 'Jadual', today: 'hari ini', free: 'Percuma', backToTop: 'Kembali ke atas', enterNight: 'Masuk ke pasar malam', switchDaylight: 'Tukar ke siang', daysRange: 'Hari {a}–{b}', statDays: 'Hari', statCities: 'Bandar', statActivities: 'Aktiviti', statBudget: 'Belanjawan' },
+  id: { schedule: 'Jadwal', today: 'hari ini', free: 'Gratis', backToTop: 'Kembali ke atas', enterNight: 'Masuk ke pasar malam', switchDaylight: 'Beralih ke siang hari', daysRange: 'Hari {a}–{b}', statDays: 'Hari', statCities: 'Kota', statActivities: 'Kegiatan', statBudget: 'Anggaran' },
+  fil: { schedule: 'Iskedyul', today: 'ngayon', free: 'Libre', backToTop: 'Bumalik sa itaas', enterNight: 'Pumasok sa night market', switchDaylight: 'Lumipat sa umaga', daysRange: 'Araw {a}–{b}', statDays: 'Araw', statCities: 'Lungsod', statActivities: 'Aktibidad', statBudget: 'Badyet' },
+  tet: { schedule: 'Oráriu', today: 'ohin', free: 'Gratis', backToTop: 'Fila ba leten', enterNight: 'Tama ba merkadu kalan', switchDaylight: 'Muda ba loron', daysRange: 'Loron {a}–{b}', statDays: 'Loron', statCities: 'Sidade', statActivities: 'Atividade', statBudget: 'Orsamentu' },
+  ja: { schedule: 'スケジュール', today: '本日', free: '無料', backToTop: 'トップへ戻る', enterNight: 'ナイトマーケットへ', switchDaylight: '昼の景色に切替', daysRange: '{a}〜{b}日目', statDays: '日間', statCities: '都市', statActivities: 'アクティビティ', statBudget: '概算予算', legOf: '第{n}区間 / 全{total}', prevCountry: '前の国', nextCountry: '次の国' },
+  zh: { schedule: '行程安排', today: '今日', free: '免费', backToTop: '返回顶部', enterNight: '进入夜市', switchDaylight: '切换到白天', daysRange: '第{a}–{b}天', statDays: '天', statCities: '城市', statActivities: '活动', statBudget: '预算', legOf: '第 {n} / {total} 段', prevCountry: '上一个国家', nextCountry: '下一个国家' },
+}
+
+// Region preview player + subtitle-panel chrome, per language. Only the fixed
+// UI labels live here; the editorial content itself is auto-translated at
+// runtime through <Tx>, so the panel never mixes languages.
+const TRANSLATIONS_PREVIEW: Record<string, Dict> = {
+  en: { previewBadge: 'Preview', loadingPreview: 'Loading preview…', playLabel: 'Play or pause', muteLabel: 'Mute', unmuteLabel: 'Unmute', replayLabel: 'Replay', fullscreenLabel: 'Fullscreen', introLabel: 'Overview', specialtyLabel: 'Local specialties', attractionsLabel: 'Famous attractions', bestTimeLabel: 'Best time to visit' },
+  vi: { previewBadge: 'Xem trước', loadingPreview: 'Đang tải bản xem trước…', playLabel: 'Phát hoặc tạm dừng', muteLabel: 'Tắt tiếng', unmuteLabel: 'Bật tiếng', replayLabel: 'Xem lại', fullscreenLabel: 'Toàn màn hình', introLabel: 'Tổng quan', specialtyLabel: 'Đặc sản địa phương', attractionsLabel: 'Điểm tham quan nổi tiếng', bestTimeLabel: 'Thời điểm lý tưởng' },
+  lo: { previewBadge: 'ຕົວຢ່າງ', loadingPreview: 'ກຳລັງໂຫຼດຕົວຢ່າງ…', playLabel: 'ຫຼິ້ນ ຫຼື ຢຸດ', muteLabel: 'ປິດສຽງ', unmuteLabel: 'ເປີດສຽງ', replayLabel: 'ຫຼິ້ນຄືນ', fullscreenLabel: 'ເຕັມຈໍ', introLabel: 'ພາບລວມ', specialtyLabel: 'ຜະລິດຕະພັນທ້ອງຖິ່ນ', attractionsLabel: 'ສະຖານທີ່ທ່ອງທ່ຽວທີ່ມີຊື່ສຽງ', bestTimeLabel: 'ຊ່ວງເວລາທີ່ດີທີ່ສຸດ' },
+  km: { previewBadge: 'មើលជាមុន', loadingPreview: 'កំពុងផ្ទុកការមើលជាមុន…', playLabel: 'លេង ឬ ផ្អាក', muteLabel: 'បិទសំឡេង', unmuteLabel: 'បើកសំឡេង', replayLabel: 'មើលឡើងវិញ', fullscreenLabel: 'ពេញអេក្រង់', introLabel: 'ទិដ្ឋភាពទូទៅ', specialtyLabel: 'ជំនាញក្នុងស្រុក', attractionsLabel: 'ទីកន្លែងទេសចរណ៍ល្បី', bestTimeLabel: 'ពេលវេលាល្អបំផុតដើម្បីទស្សនា' },
+  th: { previewBadge: 'ตัวอย่าง', loadingPreview: 'กำลังโหลดตัวอย่าง…', playLabel: 'เล่นหรือหยุด', muteLabel: 'ปิดเสียง', unmuteLabel: 'เปิดเสียง', replayLabel: 'เล่นซ้ำ', fullscreenLabel: 'เต็มจอ', introLabel: 'ภาพรวม', specialtyLabel: 'ของขึ้นชื่อประจำถิ่น', attractionsLabel: 'สถานที่ท่องเที่ยวชื่อดัง', bestTimeLabel: 'ช่วงเวลาที่ดีที่สุด' },
+  my: { previewBadge: 'နမူနာ', loadingPreview: 'နမူနာ ဖွင့်နေသည်…', playLabel: 'ဖွင့် သို့မဟုတ် ခဏရပ်', muteLabel: 'အသံပိတ်', unmuteLabel: 'အသံဖွင့်', replayLabel: 'ပြန်ဖွင့်', fullscreenLabel: 'မျက်နှာပြင်အပြည့်', introLabel: 'ခြုံငုံသုံးသပ်ချက်', specialtyLabel: 'ဒေသထွက် အထူးအရာ', attractionsLabel: 'နာမည်ကြီး နေရာများ', bestTimeLabel: 'အလည်ရန် အကောင်းဆုံးအချိန်' },
+  ms: { previewBadge: 'Pratonton', loadingPreview: 'Memuatkan pratonton…', playLabel: 'Main atau jeda', muteLabel: 'Bisukan', unmuteLabel: 'Nyahbisu', replayLabel: 'Main semula', fullscreenLabel: 'Skrin penuh', introLabel: 'Gambaran keseluruhan', specialtyLabel: 'Keistimewaan tempatan', attractionsLabel: 'Tarikan terkenal', bestTimeLabel: 'Masa terbaik melawat' },
+  id: { previewBadge: 'Pratinjau', loadingPreview: 'Memuat pratinjau…', playLabel: 'Putar atau jeda', muteLabel: 'Bisukan', unmuteLabel: 'Bunyikan', replayLabel: 'Putar ulang', fullscreenLabel: 'Layar penuh', introLabel: 'Ringkasan', specialtyLabel: 'Kekhasan lokal', attractionsLabel: 'Atraksi terkenal', bestTimeLabel: 'Waktu terbaik berkunjung' },
+  fil: { previewBadge: 'Preview', loadingPreview: 'Naglo-load ng preview…', playLabel: 'I-play o i-pause', muteLabel: 'I-mute', unmuteLabel: 'I-unmute', replayLabel: 'I-replay', fullscreenLabel: 'Fullscreen', introLabel: 'Pangkalahatang-ideya', specialtyLabel: 'Lokal na espesyalidad', attractionsLabel: 'Sikat na atraksyon', bestTimeLabel: 'Pinakamainam na panahon' },
+  tet: { previewBadge: 'Pré-vizualizasaun', loadingPreview: 'Karega pré-vizualizasaun…', playLabel: 'Toka ka para', muteLabel: 'Hamaus lian', unmuteLabel: 'Loke lian', replayLabel: 'Foti fali', fullscreenLabel: 'Ekrán tomak', introLabel: 'Vizaun jerál', specialtyLabel: 'Espesialidade lokál', attractionsLabel: 'Fatin turístiku famozu', bestTimeLabel: 'Tempu di\'ak liu atu vizita' },
+  ja: { previewBadge: 'プレビュー', loadingPreview: 'プレビューを読み込み中…', playLabel: '再生または一時停止', muteLabel: 'ミュート', unmuteLabel: 'ミュート解除', replayLabel: 'リプレイ', fullscreenLabel: '全画面', introLabel: '概要', specialtyLabel: 'ご当地名物', attractionsLabel: '有名な名所', bestTimeLabel: 'ベストシーズン' },
+  zh: { previewBadge: '预览', loadingPreview: '正在加载预览…', playLabel: '播放或暂停', muteLabel: '静音', unmuteLabel: '取消静音', replayLabel: '重播', fullscreenLabel: '全屏', introLabel: '概览', specialtyLabel: '当地特色', attractionsLabel: '著名景点', bestTimeLabel: '最佳旅行时间' },
 }
 
 const tr = (lang: string, key: string) => {
   const b = baseLang(lang)
   return (
+    TRANSLATIONS_PREVIEW[b]?.[key] ??
     TRANSLATIONS_EXTRA[b]?.[key] ??
     TRANSLATIONS_SCHED[b]?.[key] ??
     TRANSLATIONS[b]?.[key] ??
+    TRANSLATIONS_PREVIEW.en[key] ??
     TRANSLATIONS_SCHED.en[key] ??
     TRANSLATIONS.en[key] ??
     key
@@ -7062,6 +6890,7 @@ const SPECIALTY_I18N: Record<string, Record<string, LocCard>> = {
 
 // The localized card for the current country+language, or null to use English.
 const localizedCard = (countryId: string, lang: string, title: string): LocCard | null => {
+  if (baseLang(lang) !== baseLang(COUNTRY_LANG[countryId] ?? 'en')) return null
   return SPECIALTY_I18N[countryId]?.[title] ?? null
 }
 
@@ -7069,6 +6898,167 @@ const LangContext = createContext<string>('en')
 const useT = () => {
   const lang = useContext(LangContext)
   return (key: string) => tr(lang, key)
+}
+
+// ── Scroll progress bar — lives at the bottom of the sticky header ──────────
+function ScrollProgress() {
+  const [pct, setPct] = useState(0)
+  useEffect(() => {
+    const onScroll = () => {
+      const doc = document.documentElement
+      const scrolled = doc.scrollTop || document.body.scrollTop
+      const total = doc.scrollHeight - doc.clientHeight
+      setPct(total > 0 ? (scrolled / total) * 100 : 0)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return (
+    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[var(--color-border)]" aria-hidden="true">
+      <div
+        className="h-full"
+        style={{
+          width: `${pct}%`,
+          background: 'var(--color-primary)',
+          transition: 'width 80ms linear',
+          boxShadow: '0 0 6px var(--color-primary)',
+        }}
+      />
+    </div>
+  )
+}
+
+// ── Viewport-entry reveal — wraps any section for a fade-up entrance ─────────
+function Reveal({ children, className = '', delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect() } },
+      { threshold: 0.06, rootMargin: '0px 0px -30px 0px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+  return (
+    <div
+      ref={ref}
+      className={`${className} transition-[opacity,transform] duration-700 ease-out`}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(22px)',
+        transitionDelay: `${delay}ms`,
+        // Only hint the compositor while the entrance is pending; releasing it
+        // afterwards avoids keeping a GPU layer alive for every section.
+        willChange: visible ? 'auto' : 'transform, opacity',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+// ── Animated count-up hook ───────────────────────────────────────────────────
+function useCountUp(target: number, active: boolean) {
+  const [val, setVal] = useState(0)
+  useEffect(() => {
+    if (!active) { setVal(0); return }
+    const start = performance.now()
+    const dur = 950
+    let raf: number
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / dur, 1)
+      const ease = 1 - Math.pow(1 - t, 3)
+      setVal(Math.round(ease * target))
+      if (t < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, active])
+  return val
+}
+
+// ── Country quick-stats strip with animated counters ────────────────────────
+function QuickStats({ country }: { country: Country }) {
+  const t = useT()
+  const ref = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(false)
+  useEffect(() => {
+    setActive(false)
+    const id = setTimeout(() => setActive(true), 80)
+    return () => clearTimeout(id)
+  }, [country.id])
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setActive(true) }, { threshold: 0.3 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  const itinerary = country.itinerary ?? []
+  const days = itinerary.length
+  const activities = itinerary.flatMap((d) => d.activities).length
+  const cities = new Set(itinerary.map((d) => d.city.split(' — ')[0])).size
+  const totalUsd = Math.round(itinerary.flatMap((d) => d.activities).reduce((s, a) => s + a.cost, 0) / country.fxPerUsd)
+
+  const daysV = useCountUp(days, active)
+  const citiesV = useCountUp(cities, active)
+  const actsV = useCountUp(activities, active)
+  const usdV = useCountUp(totalUsd, active)
+
+  const stats = [
+    { label: t('statDays'), value: String(daysV), icon: '🗓' },
+    { label: t('statCities'), value: String(citiesV), icon: '🏙' },
+    { label: t('statActivities'), value: String(actsV), icon: '🎯' },
+    { label: t('statBudget'), value: `~$${usdV.toLocaleString('en-US')}`, icon: '💵' },
+  ]
+
+  return (
+    <div ref={ref} className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--color-border)] border border-[var(--color-border)] mb-8 overflow-hidden">
+      {stats.map((s, i) => (
+        <div
+          key={s.label}
+          className="group relative bg-[var(--color-card)] px-4 py-4 flex flex-col items-center gap-1 text-center sheen"
+          style={{ transition: `opacity 0.5s ease ${i * 60}ms, transform 0.5s ease ${i * 60}ms`, opacity: active ? 1 : 0, transform: active ? 'translateY(0)' : 'translateY(8px)' }}
+        >
+          <span
+            className="pointer-events-none absolute inset-x-0 top-0 h-[2px] origin-center scale-x-0 transition-transform duration-500 ease-out group-hover:scale-x-100"
+            style={{ background: 'linear-gradient(90deg, transparent, var(--color-primary), transparent)' }}
+            aria-hidden="true"
+          />
+          <span className="text-xl leading-none transition-transform duration-300 group-hover:scale-125 group-hover:-rotate-6" aria-hidden="true">{s.icon}</span>
+          <div className="accent-gradient font-mono text-2xl font-600 tabular-nums">{s.value}</div>
+          <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-muted-foreground)]">{s.label}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Floating back-to-top — fades in after 400 px of scroll ──────────────────
+function FloatingBackToTop() {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 400)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      aria-label="Back to top"
+      className="fixed bottom-[5.75rem] right-6 z-40 grid h-11 w-11 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg transition-all duration-300 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+      style={{ opacity: show ? 1 : 0, transform: show ? 'translateY(0)' : 'translateY(16px)', pointerEvents: show ? 'auto' : 'none' }}
+    >
+      <svg width="13" height="13" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M6 10V2M2 6l4-4 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </button>
+  )
 }
 
 function LanguageSelector({ value, onChange }: { value: string; onChange: (code: string) => void }) {
@@ -7146,6 +7136,1062 @@ function LanguageSelector({ value, onChange }: { value: string; onChange: (code:
   )
 }
 
+// ─── "My Journey" — a personal, device-saved collection ──────────────────────
+// Lets travellers bookmark any specialty or day, jot notes, and add their own
+// ideas. Persisted to localStorage so the trip they compose survives reloads.
+interface JourneyItem {
+  id: string
+  kind: 'specialty' | 'day' | 'festival' | 'region' | 'custom'
+  title: string
+  subtitle?: string
+  image?: string
+  accent?: string
+  note?: string
+}
+
+interface JourneyApi {
+  items: JourneyItem[]
+  has: (id: string) => boolean
+  toggle: (item: JourneyItem) => void
+  remove: (id: string) => void
+  addCustom: (title: string) => void
+  updateNote: (id: string, note: string) => void
+  clear: () => void
+}
+
+const JOURNEY_KEY = 'grandtour:journey:v1'
+const JourneyContext = createContext<JourneyApi | null>(null)
+const useJourney = () => useContext(JourneyContext) as JourneyApi
+
+function JourneyProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<JourneyItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(JOURNEY_KEY)
+      return raw ? (JSON.parse(raw) as JourneyItem[]) : []
+    } catch {
+      return []
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem(JOURNEY_KEY, JSON.stringify(items))
+    } catch {
+      /* storage may be unavailable — the trip simply won't persist */
+    }
+  }, [items])
+
+  const api: JourneyApi = {
+    items,
+    has: (id) => items.some((i) => i.id === id),
+    toggle: (item) =>
+      setItems((prev) => (prev.some((i) => i.id === item.id) ? prev.filter((i) => i.id !== item.id) : [...prev, item])),
+    remove: (id) => setItems((prev) => prev.filter((i) => i.id !== id)),
+    addCustom: (title) =>
+      setItems((prev) => [...prev, { id: `custom:${Date.now()}`, kind: 'custom', title }]),
+    updateNote: (id, note) => setItems((prev) => prev.map((i) => (i.id === id ? { ...i, note } : i))),
+    clear: () => setItems([]),
+  }
+  return <JourneyContext.Provider value={api}>{children}</JourneyContext.Provider>
+}
+
+// A compact star toggle placed over cards to save/unsave an item.
+function SaveButton({ item, className = 'h-7 w-7 text-sm' }: { item: JourneyItem; className?: string }) {
+  const j = useJourney()
+  const t = useT()
+  const saved = j.has(item.id)
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        j.toggle(item)
+      }}
+      aria-pressed={saved}
+      aria-label={saved ? t('savedItem') : t('saveItem')}
+      title={saved ? t('savedItem') : t('saveItem')}
+      className={`grid place-items-center rounded-full border backdrop-blur-sm transition-all duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] ${
+        saved
+          ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-primary-foreground)] shadow-[0_0_12px_-2px_var(--color-primary)]'
+          : 'border-white/40 bg-black/30 text-white hover:bg-black/50'
+      } ${className}`}
+    >
+      <span className={saved ? 'animate-none' : ''}>{saved ? '★' : '✦'}</span>
+    </button>
+  )
+}
+
+// Slide-in drawer listing the saved collection, with notes + custom entries.
+function JourneyDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const j = useJourney()
+  const t = useT()
+  const [draft, setDraft] = useState('')
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  const submit = () => {
+    const v = draft.trim()
+    if (!v) return
+    j.addCustom(v)
+    setDraft('')
+  }
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        aria-hidden="true"
+        className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] transition-opacity duration-300"
+        style={{ opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none' }}
+      />
+      <aside
+        role="dialog"
+        aria-label={t('journeyTitle')}
+        className="fixed inset-y-0 right-0 z-[61] flex w-[min(92vw,26rem)] flex-col border-l border-[var(--color-border)] bg-[var(--color-card)] shadow-2xl transition-transform duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+        style={{ transform: open ? 'translateX(0)' : 'translateX(101%)' }}
+      >
+        <header className="flex items-start justify-between border-b border-[var(--color-border)] px-5 py-4">
+          <div>
+            <div className="accent-gradient inline-block font-mono text-[10px] uppercase tracking-[0.35em]">
+              {t('journeyTagline')}
+            </div>
+            <h2 className="font-carve text-2xl leading-tight">{t('journeyTitle')}</h2>
+            <div className="mt-1 font-mono text-xs text-[var(--color-muted-foreground)]">
+              {t('itemsSaved').replace('{n}', String(j.items.length))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {j.items.length > 0 && (
+              <button
+                type="button"
+                onClick={j.clear}
+                className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-muted-foreground)] underline-offset-2 transition-colors hover:text-[var(--color-primary)] hover:underline"
+              >
+                {t('clearAll')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t('closePanel')}
+              className="grid h-8 w-8 place-items-center rounded-full border border-[var(--color-border)] text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+            >
+              ✕
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {j.items.length === 0 ? (
+            <p className="mt-8 text-center font-body text-sm leading-relaxed text-[var(--color-muted-foreground)]">
+              {t('journeyEmpty')}
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {j.items.map((it) => (
+                <li
+                  key={it.id}
+                  className="film-rise flex gap-3 border border-[var(--color-border)] bg-[var(--color-background)] p-2.5"
+                  style={it.accent ? { borderLeft: `3px solid ${it.accent}` } : undefined}
+                >
+                  {it.image ? (
+                    <img src={it.image} alt="" aria-hidden="true" loading="lazy" decoding="async" className="h-14 w-14 flex-shrink-0 rounded-sm object-cover" />
+                  ) : (
+                    <span
+                      className="grid h-14 w-14 flex-shrink-0 place-items-center rounded-sm bg-[var(--color-muted)] text-lg"
+                      aria-hidden="true"
+                    >
+                      ✦
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate font-display text-sm font-600 leading-tight">{it.title}</div>
+                        <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--color-muted-foreground)]">
+                          {it.kind === 'custom' ? t('customKind') : it.subtitle}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => j.remove(it.id)}
+                        aria-label={t('closePanel')}
+                        className="text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-primary)]"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <input
+                      value={it.note ?? ''}
+                      onChange={(e) => j.updateNote(it.id, e.target.value)}
+                      placeholder={t('notePlaceholder')}
+                      className="mt-1.5 w-full border-b border-dashed border-[var(--color-border)] bg-transparent pb-0.5 font-script text-base text-[var(--color-foreground)] placeholder:font-body placeholder:text-xs placeholder:not-italic placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-primary)] focus:outline-none"
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="border-t border-[var(--color-border)] p-4">
+          <div className="flex gap-2">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && submit()}
+              placeholder={t('addCustomLabel')}
+              className="flex-1 border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 font-body text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] focus:border-[var(--color-primary)] focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!draft.trim()}
+              className="flex-shrink-0 bg-[var(--color-primary)] px-4 font-mono text-xs uppercase tracking-widest text-[var(--color-primary-foreground)] transition-opacity disabled:opacity-40"
+            >
+              {t('addBtn')}
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
+  )
+}
+
+// Floating launcher with a live saved-count badge.
+function JourneyFab({ onClick }: { onClick: () => void }) {
+  const j = useJourney()
+  const t = useT()
+  const count = j.items.length
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={t('openJourney')}
+      title={t('openJourney')}
+      className="glow-breathe fixed bottom-8 right-6 z-40 grid h-12 w-12 place-items-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-primary-foreground)] shadow-lg transition-transform duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+    >
+      <span className="text-lg leading-none">✦</span>
+      {count > 0 && (
+        <span className="tick-in absolute -right-1 -top-1 grid h-5 min-w-[1.25rem] place-items-center rounded-full border border-[var(--color-card)] bg-[var(--color-foreground)] px-1 font-mono text-[10px] font-600 text-[var(--color-background)]">
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
+// ═══ Netflix-style browse experience ═════════════════════════════════════════
+// Reimagines the whole site as a streaming home screen: a cinematic billboard on
+// top, then one horizontal "genre" row per Southeast Asian country. Every card
+// is a destination/specialty drawn from REGION_GUIDE; clicking one opens the
+// same cinematic RegionDetail (auto-playing preview + auto-translated subtitles)
+// the journal already uses, so the video + i18n work carries over untouched.
+
+type NfItem = { region: Region; country: RegionCountry }
+
+// Fallback shown if a thumbnail/hero photo 404s — a self-contained gradient data
+// URI so it can never itself fail to load.
+const NF_FALLBACK_IMG =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='9'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231b2a3a'/%3E%3Cstop offset='1' stop-color='%230b0b0f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='16' height='9' fill='url(%23g)'/%3E%3C/svg%3E"
+
+// Swap in the fallback exactly once, so a failing fallback can't loop.
+const onImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  const el = e.currentTarget
+  if (el.src !== NF_FALLBACK_IMG) el.src = NF_FALLBACK_IMG
+}
+
+// A short editorial "genre" line per country, written in English so <Tx> can
+// auto-translate it into whichever language the viewer has chosen.
+const NF_ROW_TAGLINE: Record<string, string> = {
+  vietnam: 'Heritage coasts, lantern towns & street-food capitals',
+  laos: 'Mekong temples, misty karsts & highland coffee',
+  cambodia: 'Angkor at sunrise & the empire of the Khmer',
+  thailand: 'Golden temples, floating markets & island beaches',
+  myanmar: 'Ancient kingdoms, pagoda plains & sacred rivers',
+  malaysia: 'Rainforest skylines & island escapes',
+  singapore: 'Skyline gardens & hawker feasts',
+  indonesia: 'Volcanoes, coral reefs & emerald rice terraces',
+  philippines: 'Turquoise lagoons & island hopping',
+  brunei: 'Royal mosques & the water village',
+  timor: 'Untouched coasts & untouched coral seas',
+  japan: 'Neon cities & sacred mountains',
+  china: 'Great wonders & dynastic capitals',
+}
+
+// The expanded Netflix "hover card": a fixed-position popover anchored to the
+// thumbnail's on-screen rect, so it can overlap its neighbours without being
+// clipped by the row's horizontal scroller. It shows only the autoplaying
+// preview video (with a corner mute toggle).
+function NfHoverPreview({ item, rect, onOpen, onClose }: {
+  item: NfItem
+  rect: DOMRect
+  onOpen: (i: NfItem) => void
+  onClose: () => void
+}) {
+  const { region, country } = item
+  const video = regionVideoFor(country.id, region)
+  const [ready, setReady] = useState(false)
+  const [muted, setMuted] = useState(true)
+  const vid = useRef<HTMLVideoElement>(null)
+
+  // 1.5× the thumbnail width, centred on it and clamped to the viewport.
+  const w = Math.min(Math.max(rect.width * 1.5, 300), window.innerWidth - 24)
+  const left = Math.min(Math.max(rect.left + rect.width / 2 - w / 2, 12), window.innerWidth - w - 12)
+  const top = Math.min(Math.max(rect.top - rect.height * 0.25, 12), window.innerHeight - rect.height * 2.2 - 12)
+
+  // The popover is anchored to a snapshot rect, so any scroll/resize invalidates
+  // its position — dismiss it rather than let it drift.
+  useEffect(() => {
+    const close = () => onClose()
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [onClose])
+
+  const toggleMute = () => {
+    const v = vid.current
+    if (!v) return
+    v.muted = !v.muted
+    setMuted(v.muted)
+  }
+
+  return createPortal(
+    <div
+      className="nf-pop fixed z-[60] overflow-hidden rounded-lg bg-[var(--nf-card)] text-left shadow-2xl ring-1 ring-white/10"
+      style={{ left, top, width: w }}
+      onMouseLeave={onClose}
+      onClick={() => onOpen(item)}
+    >
+      <div className="relative aspect-video overflow-hidden bg-black">
+        <img src={region.image} alt={region.name} decoding="async" onError={onImgError} className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${ready ? 'opacity-0' : 'opacity-100'}`} />
+        {video && (
+          <video
+            ref={vid}
+            src={video}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            onCanPlay={() => setReady(true)}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${ready ? 'opacity-100' : 'opacity-0'}`}
+          />
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--nf-card)] via-transparent to-transparent" />
+        {/* Mute toggle, top-right corner */}
+        {video && (
+          <button
+            type="button"
+            aria-label={muted ? 'Unmute preview' : 'Mute preview'}
+            onClick={(e) => { e.stopPropagation(); toggleMute() }}
+            className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border border-white/50 bg-black/40 text-xs text-white transition-colors hover:border-white"
+          >
+            {muted ? '🔇' : '🔊'}
+          </button>
+        )}
+        <h3 className="absolute bottom-2 left-3 font-carve text-xl text-white drop-shadow"><Tx>{region.name}</Tx></h3>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+function NfCard({ item, rank, badge, onOpen }: { item: NfItem; rank?: number; badge?: string; onOpen: (i: NfItem) => void }) {
+  const { region, country } = item
+  // Classic Netflix hover-preview: only after ~0.55s of sustained hover does the
+  // expanded popover (with autoplaying video) appear. `preview` holds the
+  // thumbnail's on-screen rect so the popover can anchor to it.
+  const [preview, setPreview] = useState<DOMRect | null>(null)
+  const timer = useRef<number | null>(null)
+  const cardRef = useRef<HTMLButtonElement>(null)
+
+  const enter = () => {
+    if (matchMedia('(hover: none)').matches) return // no true hover on touch
+    timer.current = window.setTimeout(() => {
+      const el = cardRef.current
+      if (el) setPreview(el.getBoundingClientRect())
+    }, 550)
+  }
+  const cancel = () => {
+    if (timer.current) window.clearTimeout(timer.current)
+  }
+  useEffect(() => () => cancel(), [])
+
+  return (
+    <>
+      <button
+        ref={cardRef}
+        type="button"
+        onClick={() => onOpen(item)}
+        onMouseEnter={enter}
+        onMouseLeave={cancel}
+        onFocus={enter}
+        onBlur={cancel}
+        className="group relative w-[220px] flex-shrink-0 snap-start overflow-hidden rounded-md bg-[var(--nf-card)] text-left outline-none transition-transform duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white sm:w-[300px]"
+      >
+        <div className="relative aspect-video overflow-hidden">
+          <img
+            src={region.image}
+            alt={region.name}
+            loading="lazy"
+            decoding="async"
+            onError={onImgError}
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
+          {rank != null && (
+            <span className="absolute left-2 top-1 font-carve text-4xl leading-none text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]">
+              {rank}
+            </span>
+          )}
+          {badge && (
+            <span className="absolute right-2 top-2 rounded bg-[var(--nf-red)] px-1.5 py-0.5 font-mono text-[10px] font-600 uppercase tracking-wider text-white">
+              {badge}
+            </span>
+          )}
+          <div className="absolute inset-x-0 bottom-0 p-3">
+            <div className="mb-0.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--nf-dim)]">
+              <span className="text-sm leading-none">{country.flag}</span>
+              <Tx>{country.name}</Tx>
+            </div>
+            <h3 className="font-carve text-lg leading-tight text-white drop-shadow"><Tx>{region.name}</Tx></h3>
+          </div>
+        </div>
+      </button>
+      {preview && (
+        <NfHoverPreview item={item} rect={preview} onOpen={onOpen} onClose={() => setPreview(null)} />
+      )}
+    </>
+  )
+}
+
+function NfRow({ title, tagline, items, ranked, onOpen }: {
+  title: string
+  tagline?: string
+  items: NfItem[]
+  ranked?: boolean
+  onOpen: (i: NfItem) => void
+}) {
+  const scroller = useRef<HTMLDivElement>(null)
+  const scroll = (dir: 1 | -1) => {
+    const el = scroller.current
+    if (!el) return
+    el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.85), behavior: 'smooth' })
+  }
+  return (
+    <section className="nf-fadein mb-8">
+      <div className="mb-2 flex items-baseline gap-3 px-4 sm:px-12">
+        <h2 className="font-carve text-xl text-white sm:text-2xl"><Tx>{title}</Tx></h2>
+        {tagline && <span className="hidden font-thin-body text-sm text-[var(--nf-dim)] sm:block"><Tx>{tagline}</Tx></span>}
+      </div>
+      <div className="group/row relative">
+        <button
+          type="button"
+          aria-label="Scroll left"
+          onClick={() => scroll(-1)}
+          className="absolute left-0 top-0 z-20 hidden h-full w-12 place-items-center bg-gradient-to-r from-black/70 to-transparent text-2xl text-white opacity-0 transition-opacity group-hover/row:opacity-100 sm:grid"
+        >
+          ‹
+        </button>
+        <div ref={scroller} className="nf-scroll flex snap-x gap-2 overflow-x-auto overflow-y-visible px-4 pb-2 pr-8 sm:pl-12 sm:pr-16">
+          {items.map((it, i) => (
+            <NfCard key={`${it.country.id}-${it.region.name}`} item={it} rank={ranked ? i + 1 : undefined} onOpen={onOpen} />
+          ))}
+          {/* Trailing spacer so the final card clears the right-edge arrow. */}
+          <div aria-hidden className="w-1 flex-shrink-0 sm:w-6" />
+        </div>
+        <button
+          type="button"
+          aria-label="Scroll right"
+          onClick={() => scroll(1)}
+          className="absolute right-0 top-0 z-20 hidden h-full w-12 place-items-center bg-gradient-to-l from-black/70 to-transparent text-2xl text-white opacity-0 transition-opacity group-hover/row:opacity-100 sm:grid"
+        >
+          ›
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function NfHero({ item, onOpen }: { item: NfItem; onOpen: (i: NfItem) => void }) {
+  const { region, country } = item
+  const video = regionVideoFor(country.id, region)
+  const [ready, setReady] = useState(false)
+  return (
+    <div className="relative h-[88vh] min-h-[560px] w-full overflow-hidden">
+      <img
+        src={region.image}
+        alt={region.name}
+        decoding="async"
+        onError={onImgError}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${ready ? 'opacity-0' : 'opacity-100'}`}
+      />
+      {video && (
+        <video
+          src={video}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+          onCanPlay={() => setReady(true)}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${ready ? 'opacity-100' : 'opacity-0'}`}
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-[var(--nf-bg)] via-[var(--nf-bg)]/30 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[var(--nf-bg)]/85 via-transparent to-transparent" />
+      <div className="hero-content absolute inset-x-0 bottom-0 z-20 max-w-2xl p-4 pb-10 sm:p-12">
+        <div className="mb-2 flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-[var(--nf-dim)]">
+          <span className="text-base leading-none">{country.flag}</span>
+          <Tx>{country.name}</Tx>
+        </div>
+        <h1 className="font-carve text-4xl text-white drop-shadow-lg sm:text-6xl"><Tx>{region.name}</Tx></h1>
+        <p className="mt-3 max-w-xl font-thin-body text-base leading-relaxed text-white/90 drop-shadow sm:text-lg">
+          <Tx>{region.description}</Tx>
+        </p>
+        <div className="mt-5 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onOpen(item)}
+            className="flex items-center gap-2 rounded-md bg-white px-6 py-2.5 font-mono text-sm font-600 uppercase tracking-wide text-black transition-colors hover:bg-white/85"
+          >
+            ▶ <Tx>Watch Preview</Tx>
+          </button>
+          <button
+            type="button"
+            onClick={() => onOpen(item)}
+            className="flex items-center gap-2 rounded-md bg-white/20 px-6 py-2.5 font-mono text-sm font-600 uppercase tracking-wide text-white backdrop-blur transition-colors hover:bg-white/30"
+          >
+            ⓘ <Tx>More Info</Tx>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Netflix browse: sections, data helpers & chrome ──────────────────────────
+
+type NfSection = 'home' | 'destinations' | 'festivals' | 'food' | 'new' | 'trips' | 'regions' | 'calendar'
+
+const NF_NAV: { key: NfSection; label: string }[] = [
+  { key: 'home', label: 'Home' },
+  { key: 'destinations', label: 'Destinations' },
+  { key: 'festivals', label: 'Culture & Festivals' },
+  { key: 'food', label: 'Food & Specialties' },
+  { key: 'new', label: 'New & Trending' },
+  { key: 'trips', label: 'My Trips' },
+]
+
+const isFood = (r: Region) => /food/i.test(r.specialty)
+
+// Every destination flattened, plus a deterministic "most recent first" order
+// used by the New & Trending section (later countries/regions read as newer).
+const NF_FLAT: NfItem[] = REGION_GUIDE.flatMap((c) => c.regions.map((r) => ({ region: r, country: c })))
+const NF_RECENT: NfItem[] = [...NF_FLAT].reverse()
+
+function nfItemFromTripId(id: string): NfItem | null {
+  const parts = id.split(':')
+  if (parts[0] !== 'region') return null
+  const country = REGION_GUIDE.find((c) => c.id === parts[1])
+  const name = parts.slice(2).join(':')
+  const region = country?.regions.find((r) => r.name === name)
+  return country && region ? { region, country } : null
+}
+
+function NfSectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="px-4 pb-4 sm:px-12">
+      <h1 className="font-carve text-3xl text-white sm:text-5xl"><Tx>{title}</Tx></h1>
+      <p className="mt-2 max-w-2xl font-thin-body text-base text-[var(--nf-dim)] sm:text-lg"><Tx>{subtitle}</Tx></p>
+    </div>
+  )
+}
+
+// A wrapping grid of destination cards — used for search results, New & Trending,
+// filtered Destinations, and My Trips.
+function NfGrid({ items, badge, onOpen, empty }: { items: NfItem[]; badge?: (i: number) => string | undefined; onOpen: (i: NfItem) => void; empty?: string }) {
+  if (!items.length) {
+    return <p className="px-4 py-10 font-thin-body text-[var(--nf-dim)] sm:px-12">{empty ? <Tx>{empty}</Tx> : null}</p>
+  }
+  return (
+    <div className="flex flex-wrap gap-3 px-4 sm:px-12">
+      {items.map((it, i) => (
+        <NfCard key={`${it.country.id}-${it.region.name}`} item={it} badge={badge?.(i)} onOpen={onOpen} />
+      ))}
+    </div>
+  )
+}
+
+// ── Festivals ────────────────────────────────────────────────────────────────
+function NfFestivalDetail({ fest, onClose }: { fest: Festival; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="nf-pop relative w-full max-w-xl overflow-hidden rounded-lg bg-[var(--nf-card)] text-left shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="relative aspect-video overflow-hidden bg-black">
+          <img src={fest.image} alt={fest.name} decoding="async" onError={onImgError} className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--nf-card)] to-transparent" />
+          <button type="button" onClick={onClose} aria-label="Close" className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white hover:bg-black/85">✕</button>
+          <h3 className="absolute bottom-2 left-4 font-carve text-2xl text-white drop-shadow"><Tx>{fest.name}</Tx></h3>
+        </div>
+        <div className="p-6 text-[var(--nf-text)]">
+          <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.25em] text-[var(--nf-red)]">
+            <Tx>{fest.country}</Tx> · <Tx>{MONTH_NAMES[fest.month - 1]}</Tx>
+          </div>
+          <div className="mb-3 font-mono text-xs text-[var(--nf-dim)]"><Tx>{fest.dateNote}</Tx></div>
+          <p className="font-thin-body text-base leading-relaxed"><Tx>{fest.description}</Tx></p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function NfFestivalCard({ fest, onOpen }: { fest: Festival; onOpen: (f: Festival) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(fest)}
+      className="group relative w-[220px] flex-shrink-0 snap-start overflow-hidden rounded-md bg-[var(--nf-card)] text-left outline-none transition-transform duration-200 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white sm:w-[260px]"
+    >
+      <div className="relative aspect-video overflow-hidden">
+        <img src={fest.image} alt={fest.name} loading="lazy" decoding="async" onError={onImgError} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-3">
+          <div className="mb-0.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--nf-dim)]"><Tx>{fest.country}</Tx> · <Tx>{MONTH_NAMES[fest.month - 1]}</Tx></div>
+          <h3 className="font-carve text-base leading-tight text-white drop-shadow"><Tx>{fest.name}</Tx></h3>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function NfFestivalRow({ title, items, onOpen }: { title: string; items: Festival[]; onOpen: (f: Festival) => void }) {
+  const scroller = useRef<HTMLDivElement>(null)
+  const scroll = (dir: 1 | -1) => scroller.current?.scrollBy({ left: dir * Math.round(scroller.current.clientWidth * 0.85), behavior: 'smooth' })
+  return (
+    <section className="nf-fadein mb-8">
+      <h2 className="mb-2 px-4 font-carve text-xl text-white sm:px-12 sm:text-2xl"><Tx>{title}</Tx></h2>
+      <div className="group/row relative">
+        <button type="button" aria-label="Scroll left" onClick={() => scroll(-1)} className="absolute left-0 top-0 z-20 hidden h-full w-12 place-items-center bg-gradient-to-r from-black/70 to-transparent text-2xl text-white opacity-0 transition-opacity group-hover/row:opacity-100 sm:grid">‹</button>
+        <div ref={scroller} className="nf-scroll flex snap-x gap-2 overflow-x-auto overflow-y-visible px-4 pb-2 pr-8 sm:pl-12 sm:pr-16">
+          {items.map((f) => <NfFestivalCard key={f.name} fest={f} onOpen={onOpen} />)}
+          <div aria-hidden className="w-1 flex-shrink-0 sm:w-6" />
+        </div>
+        <button type="button" aria-label="Scroll right" onClick={() => scroll(1)} className="absolute right-0 top-0 z-20 hidden h-full w-12 place-items-center bg-gradient-to-l from-black/70 to-transparent text-2xl text-white opacity-0 transition-opacity group-hover/row:opacity-100 sm:grid">›</button>
+      </div>
+    </section>
+  )
+}
+
+// ── Provinces & Regions — country-tabbed region explorer, NF style ────────────
+function NfRegionsExplorer({ onOpen }: { onOpen: (i: NfItem) => void }) {
+  const [ci, setCi] = useState(0)
+  const country = REGION_GUIDE[ci]
+  return (
+    <>
+      <NfSectionHeader title="Provinces & Regions" subtitle="Explore Southeast Asia province by province — pick a country, then step into each region." />
+      {/* Country selector */}
+      <div role="tablist" aria-label="Countries" className="mb-7 flex flex-wrap gap-2 px-4 sm:px-12">
+        {REGION_GUIDE.map((c, i) => {
+          const active = i === ci
+          return (
+            <button
+              key={c.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setCi(i)}
+              className={`flex items-center gap-2 rounded-full border px-4 py-2 font-mono text-sm transition-colors ${
+                active ? 'border-white bg-white text-black' : 'border-white/25 text-white/70 hover:border-white/70 hover:text-white'
+              }`}
+            >
+              <span className="text-base leading-none">{c.flag}</span>
+              <Tx>{c.name}</Tx>
+              <span className={`text-[11px] ${active ? 'text-black/50' : 'text-white/40'}`}>{c.regions.length}</span>
+            </button>
+          )
+        })}
+      </div>
+      {/* Region cards for the selected country */}
+      <div key={country.id} className="nf-fadein">
+        <NfGrid items={country.regions.map((r) => ({ region: r, country }))} onOpen={onOpen} />
+      </div>
+    </>
+  )
+}
+
+// ── A Year of Festivals — month picker + atmospheric month banner, NF style ────
+function NfFestivalYear({ initialMonth = 2, onOpen }: { initialMonth?: number; onOpen: (f: Festival) => void }) {
+  const [month, setMonth] = useState(initialMonth)
+  useEffect(() => setMonth(initialMonth), [initialMonth])
+
+  const fests = FESTIVALS.filter((f) => f.month === month)
+  const rep = fests[0]
+  const theme = rep?.themeColor ?? '#8a7d6b'
+
+  return (
+    <>
+      <NfSectionHeader title="A Year of Festivals" subtitle="Twelve months of celebrations across the region — choose a month to see what's on." />
+
+      {/* Month selector rail */}
+      <div className="nf-scroll mb-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:px-12">
+        {MONTH_NAMES.map((name, i) => {
+          const m = i + 1
+          const active = m === month
+          const has = FESTIVALS.some((f) => f.month === m)
+          return (
+            <button
+              key={name}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setMonth(m)}
+              className={`flex-shrink-0 rounded-full border px-4 py-2 font-mono text-sm uppercase tracking-wider transition-colors ${
+                active
+                  ? 'border-white bg-white text-black'
+                  : has
+                    ? 'border-white/25 text-white/80 hover:border-white/70 hover:text-white'
+                    : 'border-white/10 text-white/35'
+              }`}
+            >
+              {name.slice(0, 3)}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Atmospheric month banner */}
+      <div className="px-4 sm:px-12">
+        <div
+          className="relative overflow-hidden rounded-xl border transition-colors duration-700"
+          style={{ borderColor: theme, background: theme }}
+        >
+          {rep && (
+            <img key={rep.name} src={rep.image} alt="" aria-hidden onError={onImgError} className="absolute inset-0 h-full w-full object-cover opacity-25" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/25" />
+          <div className="relative flex flex-wrap items-end justify-between gap-4 p-6 sm:p-8">
+            <div>
+              <div className="font-mono text-[11px] uppercase tracking-[0.3em]" style={{ color: theme }}>
+                <Tx>The travel year</Tx>
+              </div>
+              <div className="mt-1 font-carve text-5xl leading-none text-white sm:text-6xl"><Tx>{MONTH_NAMES[month - 1]}</Tx></div>
+            </div>
+            <div className="font-mono text-xs uppercase tracking-widest text-white/70">
+              {fests.length} <Tx>{fests.length === 1 ? 'festival' : 'festivals'}</Tx>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Festivals in this month */}
+      <div className="nf-fadein mt-6 flex flex-wrap gap-3 px-4 sm:px-12" key={month}>
+        {fests.length ? (
+          fests.map((f) => <NfFestivalCard key={f.name} fest={f} onOpen={onOpen} />)
+        ) : (
+          <p className="py-6 font-thin-body text-[var(--nf-dim)]"><Tx>No festivals recorded for this month.</Tx></p>
+        )}
+      </div>
+    </>
+  )
+}
+
+// ── Navigation bar ───────────────────────────────────────────────────────────
+function NfNavbar({ section, onNavigate, countryFilter, onPickCountry, query, onQuery, onHome }: {
+  section: NfSection
+  onNavigate: (s: NfSection) => void
+  countryFilter: string
+  onPickCountry: (id: string) => void
+  query: string
+  onQuery: (q: string) => void
+  onHome: () => void
+}) {
+  const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [countryOpen, setCountryOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const countryRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => { if (countryRef.current && !countryRef.current.contains(e.target as Node)) setCountryOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
+  useEffect(() => { if (searchOpen) searchRef.current?.focus() }, [searchOpen])
+
+  const searchPlaceholder = useAutoTr('Search destinations…')
+  const go = (s: NfSection) => { onNavigate(s); setMenuOpen(false) }
+  const pill = (active: boolean) =>
+    `rounded-full px-3 py-1.5 transition-colors ${active ? 'bg-white/20 font-500 text-white' : 'text-[var(--nf-dim)] hover:text-white'}`
+
+  const selectedCountry = REGION_GUIDE.find((c) => c.id === countryFilter)
+
+  const countryMenu = (
+    <div className="max-h-72 overflow-y-auto rounded-md border border-white/10 bg-[#101018] p-1 shadow-xl">
+      <button type="button" onClick={() => { onPickCountry('all'); setCountryOpen(false); setMenuOpen(false) }} className={`block w-full rounded px-3 py-2 text-left font-thin-body text-sm ${countryFilter === 'all' ? 'bg-white/10 text-white' : 'text-[var(--nf-dim)] hover:bg-white/5 hover:text-white'}`}>
+        <Tx>All countries</Tx>
+      </button>
+      {REGION_GUIDE.map((c) => (
+        <button key={c.id} type="button" onClick={() => { onPickCountry(c.id); setCountryOpen(false); setMenuOpen(false) }} className={`block w-full rounded px-3 py-2 text-left font-thin-body text-sm ${countryFilter === c.id ? 'bg-white/10 text-white' : 'text-[var(--nf-dim)] hover:bg-white/5 hover:text-white'}`}>
+          <span className="mr-2">{c.flag}</span><Tx>{c.name}</Tx>
+        </button>
+      ))}
+    </div>
+  )
+
+  return (
+    <header className={`fixed inset-x-0 top-0 z-40 transition-colors duration-300 ${scrolled || section !== 'home' || menuOpen ? 'bg-[var(--nf-bg)]' : 'bg-gradient-to-b from-black/80 to-transparent'}`}>
+      <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-12">
+        <div className="flex items-center gap-6">
+          <button type="button" onClick={onHome} className="font-carve text-xl tracking-wide text-[var(--nf-red)] sm:text-2xl">
+            SOUTHEAST ASIA JOURNEY
+          </button>
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-1 font-thin-body text-sm lg:flex">
+            {NF_NAV.map((n) => (
+              <button key={n.key} type="button" onClick={() => go(n.key)} className={pill(section === n.key && !query)}>
+                <Tx>{n.label}</Tx>
+              </button>
+            ))}
+            <div ref={countryRef} className="relative">
+              <button type="button" onClick={() => setCountryOpen((v) => !v)} aria-expanded={countryOpen} className={pill(!!selectedCountry)}>
+                {selectedCountry ? <><span>{selectedCountry.flag} </span><Tx>{selectedCountry.name}</Tx></> : <Tx>Browse by Country</Tx>} ▾
+              </button>
+              {countryOpen && <div className="absolute left-0 top-full mt-2 w-56">{countryMenu}</div>}
+            </div>
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <div className="flex items-center">
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => onQuery(e.target.value)}
+              onBlur={() => { if (!query) setSearchOpen(false) }}
+              placeholder={searchPlaceholder}
+              className={`h-9 rounded-full border border-white/25 bg-black/50 px-3 font-thin-body text-sm text-white outline-none transition-all duration-300 placeholder:text-white/40 focus:border-white ${searchOpen ? 'w-40 opacity-100 sm:w-56' : 'w-0 border-transparent px-0 opacity-0'}`}
+            />
+            <button type="button" aria-label="Search" onClick={() => { setSearchOpen(true); searchRef.current?.focus() }} className="grid h-9 w-9 place-items-center rounded-full text-lg text-white hover:bg-white/10">
+              🔍
+            </button>
+          </div>
+          <LanguageSwitcher forceDark />
+          {/* Hamburger */}
+          <button type="button" aria-label="Menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((v) => !v)} className="grid h-9 w-9 place-items-center rounded-full text-xl text-white hover:bg-white/10 lg:hidden">
+            {menuOpen ? '✕' : '☰'}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile menu — same order & destinations */}
+      {menuOpen && (
+        <div className="border-t border-white/10 px-4 pb-4 lg:hidden">
+          <nav className="flex flex-col gap-1 pt-2 font-thin-body text-base">
+            {NF_NAV.map((n) => (
+              <button key={n.key} type="button" onClick={() => go(n.key)} className={`rounded px-3 py-2 text-left ${section === n.key && !query ? 'bg-white/20 text-white' : 'text-[var(--nf-dim)]'}`}>
+                <Tx>{n.label}</Tx>
+              </button>
+            ))}
+          </nav>
+          <div className="mt-3 font-mono text-[11px] uppercase tracking-widest text-[var(--nf-dim)]"><Tx>Browse by Country</Tx></div>
+          <div className="mt-2">{countryMenu}</div>
+        </div>
+      )}
+    </header>
+  )
+}
+
+// A wide, cinematic "jump to section" card shown among search results.
+function NfJumpCard({ kicker, title, subtitle, image, onClick }: { kicker: string; title: string; subtitle: string; image?: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative flex-1 overflow-hidden rounded-xl border border-white/10 text-left outline-none transition-transform duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-white"
+    >
+      <div className="relative h-32 sm:h-36">
+        {image && <img src={image} alt="" aria-hidden onError={onImgError} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/30" />
+        <div className="relative flex h-full flex-col justify-center px-5">
+          <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.25em] text-[var(--nf-red)]"><Tx>{kicker}</Tx></div>
+          <div className="font-carve text-2xl text-white drop-shadow sm:text-3xl"><Tx>{title}</Tx></div>
+          <div className="mt-1 max-w-sm font-thin-body text-sm text-white/75"><Tx>{subtitle}</Tx></div>
+        </div>
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-2xl text-white/70 transition-transform group-hover:translate-x-1">→</span>
+      </div>
+    </button>
+  )
+}
+
+function NetflixHome() {
+  const j = useJourney()
+  const [open, setOpen] = useState<NfItem | null>(null)
+  const [festOpen, setFestOpen] = useState<Festival | null>(null)
+  const [section, setSection] = useState<NfSection>('home')
+  const [countryFilter, setCountryFilter] = useState<string>('all')
+  const [query, setQuery] = useState('')
+  const [calMonth, setCalMonth] = useState(2) // February — Tết opens the year
+
+  const navigate = (s: NfSection) => { setSection(s); setQuery(''); window.scrollTo({ top: 0, behavior: 'instant' }) }
+  const goHome = () => { setSection('home'); setCountryFilter('all'); setQuery(''); window.scrollTo({ top: 0, behavior: 'instant' }) }
+  const pickCountry = (id: string) => { setCountryFilter(id); setSection('destinations'); setQuery(''); window.scrollTo({ top: 0, behavior: 'instant' }) }
+  const goRegions = () => { setSection('regions'); setQuery(''); window.scrollTo({ top: 0, behavior: 'instant' }) }
+  const goCalendar = (m = 2) => { setCalMonth(m); setSection('calendar'); setQuery(''); window.scrollTo({ top: 0, behavior: 'instant' }) }
+
+  // Hero: Ha Long Bay — the most cinematic opener in the guide.
+  const heroCountry = REGION_GUIDE.find((c) => c.id === 'vietnam') ?? REGION_GUIDE[0]
+  const heroItem: NfItem = { region: heroCountry.regions[1] ?? heroCountry.regions[0], country: heroCountry }
+
+  // Country-filtered view of the guide (respects Browse by Country).
+  const shownCountries = countryFilter === 'all' ? REGION_GUIDE : REGION_GUIDE.filter((c) => c.id === countryFilter)
+  const foodCountries = shownCountries.map((c) => ({ c, foods: c.regions.filter(isFood) })).filter((x) => x.foods.length)
+  const savedItems = j.items.map((it) => nfItemFromTripId(it.id)).filter((x): x is NfItem => x !== null)
+
+  // Search across every destination.
+  const q = query.trim().toLowerCase()
+  const results = q
+    ? NF_FLAT.filter(({ region, country }) =>
+        region.name.toLowerCase().includes(q) || region.specialty.toLowerCase().includes(q) || country.name.toLowerCase().includes(q))
+    : []
+
+  // Section shortcuts surfaced in search — the two rich experiences the browse
+  // rows don't otherwise expose. A matched month name jumps the calendar there.
+  const monthMatch = q.length >= 3 ? MONTH_NAMES.findIndex((m) => m.toLowerCase().startsWith(q)) : -1
+  const wantsRegions = q ? /prov|region|explor|state|territ/.test(q) : false
+  const wantsCalendar = q ? /festiv|celebr|calendar|holiday|\byear\b|month|season/.test(q) || monthMatch >= 0 : false
+
+  return (
+    <div className="nf min-h-screen">
+      <NfNavbar
+        section={section}
+        onNavigate={navigate}
+        countryFilter={countryFilter}
+        onPickCountry={pickCountry}
+        query={query}
+        onQuery={setQuery}
+        onHome={goHome}
+      />
+
+      {/* Search overrides whatever section is active. */}
+      {q ? (
+        <div className="relative z-10 pb-16 pt-24">
+          <NfSectionHeader title={`Results for "${query}"`} subtitle="Sections, destinations, and specialties across Southeast Asia." />
+          {(wantsRegions || wantsCalendar) && (
+            <div className="mb-8 flex flex-col gap-3 px-4 sm:px-12">
+              <div className="font-mono text-[11px] uppercase tracking-[0.25em] text-[var(--nf-dim)]"><Tx>Jump to a section</Tx></div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {wantsRegions && (
+                  <NfJumpCard
+                    kicker="Explore the map"
+                    title="Provinces & Regions"
+                    subtitle="Browse every region, country by country."
+                    image={REGION_GUIDE[0].regions[0]?.image}
+                    onClick={goRegions}
+                  />
+                )}
+                {wantsCalendar && (
+                  <NfJumpCard
+                    kicker={monthMatch >= 0 ? MONTH_NAMES[monthMatch] : 'All year round'}
+                    title="A Year of Festivals"
+                    subtitle="Twelve months of celebrations across the region."
+                    image={FESTIVALS[monthMatch >= 0 ? Math.max(0, FESTIVALS.findIndex((f) => f.month === monthMatch + 1)) : 1]?.image}
+                    onClick={() => goCalendar(monthMatch >= 0 ? monthMatch + 1 : 2)}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+          <NfGrid items={results} onOpen={setOpen} empty="No destinations match your search." />
+        </div>
+      ) : section === 'home' ? (
+        <>
+          <NfHero item={heroItem} onOpen={setOpen} />
+          <div className="relative z-10 mt-8 pb-16">
+            <NfRow title="New & Trending" items={NF_RECENT.slice(0, 14)} onOpen={setOpen} />
+            {REGION_GUIDE.map((c) => (
+              <NfRow key={c.id} title={`${c.flag}  ${c.name}`} tagline={NF_ROW_TAGLINE[c.id]} items={c.regions.map((r) => ({ region: r, country: c }))} onOpen={setOpen} />
+            ))}
+            <NfFestivalRow title="Culture & Festivals" items={[...FESTIVALS].sort((a, b) => a.month - b.month)} onOpen={setFestOpen} />
+          </div>
+        </>
+      ) : (
+        <div className="relative z-10 pb-16 pt-24">
+          {section === 'destinations' && (
+            <>
+              <NfSectionHeader title="Destinations" subtitle="Every travel spot, grouped by Southeast Asian country." />
+              {shownCountries.map((c) => (
+                <NfRow key={c.id} title={`${c.flag}  ${c.name}`} tagline={NF_ROW_TAGLINE[c.id]} items={c.regions.map((r) => ({ region: r, country: c }))} onOpen={setOpen} />
+              ))}
+            </>
+          )}
+
+          {section === 'festivals' && (
+            <>
+              <NfSectionHeader title="Culture & Festivals" subtitle="Traditional festivals, customs, and intangible heritage across the region." />
+              <NfFestivalRow title="Through the year" items={[...FESTIVALS].sort((a, b) => a.month - b.month)} onOpen={setFestOpen} />
+            </>
+          )}
+
+          {section === 'food' && (
+            <>
+              <NfSectionHeader title="Food & Specialties" subtitle="Regional dishes and local specialties, country by country." />
+              {foodCountries.length ? (
+                foodCountries.map(({ c, foods }) => (
+                  <NfRow key={c.id} title={`${c.flag}  ${c.name}`} items={foods.map((r) => ({ region: r, country: c }))} onOpen={setOpen} />
+                ))
+              ) : (
+                <p className="px-4 py-10 font-thin-body text-[var(--nf-dim)] sm:px-12"><Tx>No specialties for this country yet.</Tx></p>
+              )}
+            </>
+          )}
+
+          {section === 'new' && (
+            <>
+              <NfSectionHeader title="New & Trending" subtitle="Recently added destinations, newest first." />
+              <NfGrid items={NF_RECENT} onOpen={setOpen} badge={(i) => (i < 6 ? 'New' : undefined)} />
+            </>
+          )}
+
+          {section === 'trips' && (
+            <>
+              <NfSectionHeader title="My Trips" subtitle="Places you've saved for your journey." />
+              <NfGrid items={savedItems} onOpen={setOpen} empty="You haven't saved any trips yet — open a destination and tap “Add to My Trips.”" />
+            </>
+          )}
+
+          {section === 'regions' && <NfRegionsExplorer onOpen={setOpen} />}
+
+          {section === 'calendar' && <NfFestivalYear initialMonth={calMonth} onOpen={setFestOpen} />}
+        </div>
+      )}
+
+      {open && <RegionDetail region={open.region} country={open.country} onClose={() => setOpen(null)} />}
+      {festOpen && <NfFestivalDetail fest={festOpen} onClose={() => setFestOpen(null)} />}
+    </div>
+  )
+}
+
 export default function App() {
   const [loading, setLoading] = useState(true)
   const [lang, setLang] = useState(() => (isSupported(getLocale()) ? getLocale() : 'en'))
@@ -7154,46 +8200,28 @@ export default function App() {
   const [daysExpanded, setDaysExpanded] = useState(false)
   const [showFilm, setShowFilm] = useState(false)
   const [night, setNight] = useState(false)
+  const [journeyOpen, setJourneyOpen] = useState(false)
+  // The site now opens on the Netflix-style browse home; the classic journal is
+  // one click away via the top-bar links. The chosen UI version persists.
+  const [view, setView] = useState<'netflix' | 'journal'>(() => (readUiVersion() === 'v1' ? 'journal' : 'netflix'))
+  const [switching, setSwitching] = useState(false)
 
-  // Interactive Marketplace & Wishlist States
-  const [cart, setCart] = useState<CartItem[]>([])
-  const [showCart, setShowCart] = useState(false)
-  const [wishlist, setWishlist] = useState<WishlistDay[]>([])
-  const [showWishlist, setShowWishlist] = useState(false)
-
-  const addToCart = (item: { id: string; name: string; country: string; flag: string; priceUsd: number }) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id)
-      if (existing) {
-        return prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i))
-      }
-      return [...prev, { ...item, qty: 1 }]
-    })
-    setShowCart(true)
+  // V1 = classic journal, V2 = Netflix-style redesign. Crossfade the whole page
+  // and jump to the top when swapping so the comparison feels instant, no reload.
+  const uiVersion: UiVersion = view === 'journal' ? 'v1' : 'v2'
+  const handleVersionChange = (v: UiVersion) => {
+    const next = v === 'v1' ? 'journal' : 'netflix'
+    if (next === view) return
+    setSwitching(true)
+    window.setTimeout(() => {
+      setView(next)
+      window.scrollTo({ top: 0, behavior: 'instant' })
+      requestAnimationFrame(() => setSwitching(false))
+    }, 180)
   }
-
-  const updateCartQty = (id: string, delta: number) => {
-    setCart((prev) =>
-      prev
-        .map((i) => (i.id === id ? { ...i, qty: i.qty + delta } : i))
-        .filter((i) => i.qty > 0)
-    )
-  }
-
-  const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((i) => i.id !== id))
-  }
-
-  const toggleWishlist = (day: Day, countryName: string) => {
-    setWishlist((prev) => {
-      const exists = prev.some((w) => w.dayNumber === day.day)
-      if (exists) {
-        return prev.filter((w) => w.dayNumber !== day.day)
-      }
-      const dayTotal = day.activities.reduce((s, a) => s + a.cost, 0)
-      return [...prev, { dayNumber: day.day, city: day.city, countryName, date: day.date, cost: dayTotal }]
-    })
-  }
+  // When the user explicitly picks a language, lock it so country navigation
+  // no longer auto-switches to the country's native language.
+  const langLocked = useRef(false)
 
   const country = COUNTRIES.find((c) => c.id === countryId) ?? COUNTRIES[0]
   const theme = COUNTRY_BACKGROUNDS[countryId] ?? FALLBACK_BACKGROUND
@@ -7206,16 +8234,27 @@ export default function App() {
 
   const t = (key: string) => tr(lang, key)
 
-  const changeLang = (code: string) => {
+  // Bridge the journal's language to the centralized i18n store so the global
+  // switcher, footer, and detection modal stay in lockstep with the journal.
+  // Pass explicit=true when the user actively picks a language (as opposed to
+  // the automatic country-arrival switch) so the lock is set appropriately.
+  const changeLang = (code: string, explicit = false) => {
+    if (explicit) langLocked.current = true
     setLang(code)
     setLocale(code)
   }
   const storeCode = useLocale().code
   useEffect(() => {
-    if (isSupported(storeCode) && storeCode !== lang) setLang(storeCode)
+    // Global footer switcher changed — treat as an explicit user choice.
+    if (isSupported(storeCode) && storeCode !== lang) {
+      langLocked.current = true
+      setLang(storeCode)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeCode])
 
+  // Lock page scroll while the loading screen is up, so the tall page behind
+  // the fixed overlay can't show a stray scrollbar or drift on its own.
   useEffect(() => {
     if (!loading) return
     const prevOverflow = document.body.style.overflow
@@ -7228,18 +8267,61 @@ export default function App() {
   const selectCountry = (id: string) => {
     if (id === countryId) return
     setCountryId(id)
+    setDaysExpanded(false)
+    // Auto-switch to the country's language only when the user has NOT already
+    // explicitly picked a language via the language selector.
+    if (!langLocked.current) changeLang(COUNTRY_LANG[id] ?? 'en')
     setActiveDay(0)
     setShowFilm(false)
+    // Scroll the traveler up to the top of the newly-arrived country.
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 60)
   }
 
+  // Arrow-key travel between countries — skips typing contexts and the loader.
+  useEffect(() => {
+    if (loading) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      const el = e.target as HTMLElement | null
+      const tag = el?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return
+      const idx = COUNTRIES.findIndex((c) => c.id === countryId)
+      const next = e.key === 'ArrowRight' ? Math.min(COUNTRIES.length - 1, idx + 1) : Math.max(0, idx - 1)
+      if (next !== idx) selectCountry(COUNTRIES[next].id)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, countryId])
+
+  if (view === 'netflix') {
+    return (
+      <JourneyProvider>
+      <CountryThemeContext.Provider value={theme}>
+      <LangContext.Provider value={lang}>
+        <VersionSwitcher value={uiVersion} onVersionChange={handleVersionChange} />
+        <div className="ui-swap" data-switching={switching}>
+          {loading && <LoadingScreen onDone={startExperience} montage={COUNTRIES.map((c) => c.film[0])} />}
+          <NetflixHome />
+          <SiteFooter />
+          {!loading && <LanguageDetectModal onSwitch={(code) => changeLang(code, true)} />}
+        </div>
+      </LangContext.Provider>
+      </CountryThemeContext.Provider>
+      </JourneyProvider>
+    )
+  }
+
   return (
+    <JourneyProvider>
     <CountryThemeContext.Provider value={theme}>
     <LangContext.Provider value={lang}>
+    <VersionSwitcher value={uiVersion} onVersionChange={handleVersionChange} />
     <div
       data-theme={night ? 'night' : 'day'}
       data-country={countryId}
-      className="relative min-h-screen"
+      data-switching={switching}
+      className="ui-swap relative min-h-screen"
       style={{ ['--color-primary' as string]: theme.accent, ['--color-accent' as string]: theme.accent2, ['--color-ring' as string]: theme.accent }}
     >
       <CountryBackdrop />
@@ -7247,31 +8329,16 @@ export default function App() {
 
       {loading && <LoadingScreen onDone={startExperience} montage={COUNTRIES.map((c) => c.film[0])} />}
       {showFilm && <FilmModal country={country} onClose={() => setShowFilm(false)} />}
-      {showCart && (
-        <SpecialtyCartDrawer
-          cart={cart}
-          onUpdateQty={updateCartQty}
-          onRemove={removeFromCart}
-          onClose={() => setShowCart(false)}
-        />
-      )}
-      {showWishlist && (
-        <WishlistDrawer
-          wishlist={wishlist}
-          onRemove={(dayNum) => setWishlist((prev) => prev.filter((w) => w.dayNumber !== dayNum))}
-          onClose={() => setShowWishlist(false)}
-        />
-      )}
 
       {/* Header */}
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-card)] sticky top-0 z-30">
+      <header className="border-b border-[var(--color-border)] bg-[var(--color-card)] sticky top-0 z-30 relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between py-3">
             <div>
-              <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase">{t('grandTour')}</div>
+              <div className="accent-gradient inline-block font-mono text-xs tracking-widest uppercase">{t('grandTour')}</div>
               <h1 className="font-carve text-xl leading-tight">{t('appTitle')}</h1>
             </div>
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-4">
               <div className="hidden text-right sm:block">
                 <div className="font-mono text-xs text-[var(--color-muted-foreground)]">{country.name}</div>
                 <div className="font-mono text-sm font-500 text-[var(--color-primary)]">
@@ -7280,44 +8347,27 @@ export default function App() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowWishlist(true)}
-                title="Saved Journey Stops"
-                className="relative grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-base transition-colors hover:bg-[var(--color-muted)] cursor-pointer"
+                onClick={() => { setView('netflix'); window.scrollTo({ top: 0, behavior: 'instant' }) }}
+                className="hidden rounded-full border border-[var(--color-border)] px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] sm:block"
               >
-                ❤️
-                {wishlist.length > 0 && (
-                  <span className="absolute -top-1 -right-1 font-mono text-[9px] w-4 h-4 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-600">
-                    {wishlist.length}
-                  </span>
-                )}
+                <Tx>Browse</Tx>
               </button>
-              <button
-                type="button"
-                onClick={() => setShowCart(true)}
-                title="Specialty Basket"
-                className="relative grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-base transition-colors hover:bg-[var(--color-muted)] cursor-pointer"
-              >
-                🛒
-                {cart.length > 0 && (
-                  <span className="absolute -top-1 -right-1 font-mono text-[9px] w-4 h-4 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-600">
-                    {cart.reduce((s, i) => s + i.qty, 0)}
-                  </span>
-                )}
-              </button>
-              <LanguageSelector value={lang} onChange={changeLang} />
+              <LanguageSelector value={lang} onChange={(code) => changeLang(code, true)} />
               <button
                 type="button"
                 onClick={() => setNight((n) => !n)}
-                aria-label={night ? 'Switch to daylight' : 'Enter the night market'}
-                title={night ? 'Daylight' : 'Night market'}
-                className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-base transition-colors hover:bg-[var(--color-muted)] cursor-pointer"
+                aria-label={night ? t('switchDaylight') : t('enterNight')}
+                title={night ? t('switchDaylight') : t('enterNight')}
+                className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-full border border-[var(--color-border)] text-base transition-colors hover:bg-[var(--color-muted)]"
               >
                 {night ? '🏮' : '🌙'}
               </button>
             </div>
           </div>
           <CountryTabs countries={COUNTRIES} activeId={countryId} onSelect={selectCountry} />
+          <JourneyProgress countries={COUNTRIES} activeId={countryId} onSelect={selectCountry} />
         </div>
+        <ScrollProgress />
       </header>
 
       <main
@@ -7334,17 +8384,28 @@ export default function App() {
           {/* Cinematic intro film */}
           <IntroFilm country={country} onOpen={() => setShowFilm(true)} />
 
+          {/* Country at-a-glance stats */}
+          <Reveal delay={60}>
+            <QuickStats country={country} />
+          </Reveal>
+
           {/* Live local time */}
-          <LocalTime country={country} />
+          <Reveal delay={80}>
+            <LocalTime country={country} />
+          </Reveal>
 
           {/* Specialties & heritage flip cards */}
-          <Highlights country={country} />
+          <Reveal delay={100}>
+            <Highlights country={country} />
+          </Reveal>
 
           {/* Budget bar */}
-          <BudgetBar country={country} />
+          <Reveal delay={120}>
+            <BudgetBar country={country} />
+          </Reveal>
 
           {/* Day nav + detail */}
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+          <div id="tour" className="grid grid-cols-1 scroll-mt-24 lg:grid-cols-[280px_1fr] gap-6">
             {/* Day selector */}
             <aside>
               <div className="font-mono text-xs text-[var(--color-muted-foreground)] tracking-widest uppercase mb-3">
@@ -7371,7 +8432,7 @@ export default function App() {
                     aria-expanded={daysExpanded}
                     className="flex w-full items-center justify-between border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2.5 font-mono text-xs uppercase tracking-widest text-[var(--color-muted-foreground)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-foreground)]"
                   >
-                    <span>Days 9–{itinerary.length}</span>
+                    <span>{t('daysRange').replace('{a}', '9').replace('{b}', String(itinerary.length))}</span>
                     <span
                       className={`transition-transform duration-300 ${daysExpanded ? 'rotate-180' : 'rotate-0'}`}
                       aria-hidden="true"
@@ -7415,34 +8476,27 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── Discover Southeast Asia — Journeys & Flavors From Every Corner ── */}
-        <ScrollReveal>
-          <DiscoverSoutheastAsiaSection
-            onExploreDestinations={() => window.scrollTo({ top: 400, behavior: 'smooth' })}
-            onAddToCart={addToCart}
-          />
-        </ScrollReveal>
-
-        {/* ── Đặc Sản Du Lịch Việt — Netflix-Style Hover-Preview & Red Seal Stamp ── */}
-        <ScrollReveal>
-          <VietSpecialsNetflixSection
-            onAddToCart={addToCart}
-            onToggleWishlist={(item) => toggleWishlist({ day: 99, city: item.name, date: item.province, activities: [] }, item.province)}
-            wishlistIds={wishlist.map((w) => w.city)}
-          />
-        </ScrollReveal>
-
         {/* ── Regional storytelling (shared across the whole tour) ── */}
-        <ScrollStory
-          eyebrow={t('riceEyebrow')}
-          title={t('riceTitle')}
-          lead={t('riceLead')}
-          chapters={RICE_JOURNEY}
-        />
+        <Reveal>
+          <ScrollStory
+            eyebrow={t('riceEyebrow')}
+            title={t('riceTitle')}
+            lead={t('riceLead')}
+            chapters={RICE_JOURNEY}
+          />
+        </Reveal>
 
-        <RegionExplorer currentCountryId={countryId} />
+        <Reveal delay={40}>
+          <div id="destinations" className="scroll-mt-24">
+            <RegionExplorer currentCountryId={countryId} />
+          </div>
+        </Reveal>
 
-        <FestivalCalendar />
+        <Reveal delay={80}>
+          <div id="festivals" className="scroll-mt-24">
+            <FestivalCalendar />
+          </div>
+        </Reveal>
       </main>
 
       {/* Footer */}
@@ -7459,12 +8513,12 @@ export default function App() {
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
             className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest px-5 py-2.5 border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors duration-150 cursor-pointer"
-            aria-label="Back to top"
+            aria-label={t('backToTop')}
           >
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
               <path d="M5 8V2M2 5l3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Back to top
+            {t('backToTop')}
           </button>
         </div>
       </footer>
@@ -7472,10 +8526,18 @@ export default function App() {
       {/* Premium glassmorphism mega-footer — Information + Terms & Policies */}
       <SiteFooter />
 
+      {/* Floating back-to-top button */}
+      <FloatingBackToTop />
+
+      {/* My Journey — personal saved collection */}
+      {!loading && <JourneyFab onClick={() => setJourneyOpen(true)} />}
+      <JourneyDrawer open={journeyOpen} onClose={() => setJourneyOpen(false)} />
+
       {/* Auto language detection & switching (first visit only) */}
-      {!loading && <LanguageDetectModal onSwitch={changeLang} />}
+      {!loading && <LanguageDetectModal onSwitch={(code) => changeLang(code, true)} />}
     </div>
     </LangContext.Provider>
     </CountryThemeContext.Provider>
+    </JourneyProvider>
   )
 }

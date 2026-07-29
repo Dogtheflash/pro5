@@ -75,6 +75,53 @@ export const LEGAL_NAV: NavItem[] = [
   { slug: 'health-disclaimer', label: 'Medical & Health Disclaimer' },
 ]
 
+// ── Terms & Policies, split into three logical sub-groups for the footer ──────
+export const LEGAL_GROUPS: { title: string; links: NavItem[] }[] = [
+  {
+    title: 'General Policies',
+    links: [
+      { slug: 'privacy-policy', label: 'Privacy Policy' },
+      { slug: 'terms-of-service', label: 'Terms of Service' },
+      { slug: 'website-terms', label: 'Website Terms of Use' },
+      { slug: 'cookie-policy', label: 'Cookie Policy' },
+      { slug: 'acceptable-use', label: 'Acceptable Use Policy' },
+      { slug: 'anti-spam', label: 'Anti-Spam Policy' },
+      { slug: 'community-guidelines', label: 'Community Guidelines' },
+      { slug: 'accessibility', label: 'Accessibility Statement' },
+    ],
+  },
+  {
+    title: 'Transaction Rules',
+    links: [
+      { slug: 'booking-terms', label: 'Booking Terms & Conditions' },
+      { slug: 'flight-policy', label: 'Flight Booking Policy' },
+      { slug: 'hotel-policy', label: 'Hotel Booking Policy' },
+      { slug: 'visa-terms', label: 'Visa Service Terms' },
+      { slug: 'payment-policy', label: 'Payment Policy' },
+      { slug: 'pricing-policy', label: 'Pricing Policy' },
+      { slug: 'refund-policy', label: 'Refund Policy' },
+      { slug: 'cancellation-policy', label: 'Cancellation Policy' },
+      { slug: 'compensation-policy', label: 'Compensation Policy' },
+      { slug: 'promotional-terms', label: 'Promotional Terms' },
+    ],
+  },
+  {
+    title: 'Legal & Compliance',
+    links: [
+      { slug: 'data-protection', label: 'Personal Data Protection Policy' },
+      { slug: 'gdpr', label: 'GDPR Compliance' },
+      { slug: 'data-retention', label: 'Data Retention Policy' },
+      { slug: 'account-security', label: 'Account Security Policy' },
+      { slug: 'anti-fraud', label: 'Anti-Fraud Policy' },
+      { slug: 'liability', label: 'Limitation of Liability' },
+      { slug: 'force-majeure', label: 'Force Majeure' },
+      { slug: 'dispute-resolution', label: 'Dispute Resolution' },
+      { slug: 'intellectual-property', label: 'Intellectual Property Policy' },
+      { slug: 'third-party', label: 'Third-Party Services Policy' },
+    ],
+  },
+]
+
 // ── Legal page model ─────────────────────────────────────────────────────────
 export interface LegalSection {
   heading: string

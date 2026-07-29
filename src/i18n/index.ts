@@ -17,38 +17,54 @@ export interface Locale {
 
 // The only languages that may appear in the selector.
 export const LOCALES: Locale[] = [
-  { code: 'vi', flag: '🇻🇳', label: 'Vietnamese', native: 'Tiếng Việt', intl: 'vi-VN', currency: { code: 'VND', symbol: '₫' } },
-  { code: 'ja', flag: '🇯🇵', label: 'Japanese', native: '日本語', intl: 'ja-JP', currency: { code: 'JPY', symbol: '¥' } },
   { code: 'en', flag: '🇬🇧', label: 'English', native: 'English', intl: 'en-US', currency: { code: 'USD', symbol: '$' } },
+  { code: 'vi', flag: '🇻🇳', label: 'Vietnamese', native: 'Tiếng Việt', intl: 'vi-VN', currency: { code: 'VND', symbol: '₫' } },
   { code: 'th', flag: '🇹🇭', label: 'Thai', native: 'ไทย', intl: 'th-TH', currency: { code: 'THB', symbol: '฿' } },
   { code: 'id', flag: '🇮🇩', label: 'Indonesian', native: 'Bahasa Indonesia', intl: 'id-ID', currency: { code: 'IDR', symbol: 'Rp' } },
   { code: 'ms', flag: '🇲🇾', label: 'Malay', native: 'Bahasa Melayu', intl: 'ms-MY', currency: { code: 'MYR', symbol: 'RM' } },
   { code: 'fil', flag: '🇵🇭', label: 'Filipino', native: 'Filipino', intl: 'fil-PH', currency: { code: 'PHP', symbol: '₱' } },
-  { code: 'zh', flag: '🇨🇳', label: 'Chinese', native: '中文', intl: 'zh-CN', currency: { code: 'CNY', symbol: '¥' } },
-  { code: 'ko', flag: '🇰🇷', label: 'Korean', native: '한국어', intl: 'ko-KR', currency: { code: 'KRW', symbol: '₩' } },
   { code: 'en-SG', flag: '🇸🇬', label: 'English (Singapore)', native: 'English', intl: 'en-SG', currency: { code: 'SGD', symbol: 'S$' } },
   { code: 'ms-BN', flag: '🇧🇳', label: 'Malay (Brunei)', native: 'Bahasa Melayu', intl: 'ms-BN', currency: { code: 'BND', symbol: 'B$' } },
   { code: 'km', flag: '🇰🇭', label: 'Khmer', native: 'ភាសាខ្មែរ', intl: 'km-KH', currency: { code: 'KHR', symbol: '៛' } },
   { code: 'lo', flag: '🇱🇦', label: 'Lao', native: 'ພາສາລາວ', intl: 'lo-LA', currency: { code: 'LAK', symbol: '₭' } },
   { code: 'my', flag: '🇲🇲', label: 'Burmese', native: 'မြန်မာ', intl: 'my-MM', currency: { code: 'MMK', symbol: 'K' } },
+  { code: 'tet', flag: '🇹🇱', label: 'Tetum', native: 'Tetun', intl: 'pt-TL', currency: { code: 'USD', symbol: '$' } },
 ]
 
 export const DEFAULT_LOCALE = 'en'
 const STORAGE_KEY = 'siteLang'
 
-// Variants share a translation table with their base language.
+// Destination languages the journal switches to automatically when you travel
+// to a non-SEA country (Japan, China) or a variant it codes differently from
+// the selector (Singapore/Brunei Malay). These are NOT offered in the manual
+// language picker — that stays Southeast-Asia only — but the store must ACCEPT
+// them so every surface (content via <Tx>, the footer, and the sub-pages)
+// retranslates the moment you arrive. Without this, setLocale('ja') was a
+// silent no-op and the whole site stayed in English or Vietnamese.
+const EXTENDED_LOCALES: Locale[] = [
+  { code: 'ja', flag: '🇯🇵', label: 'Japanese', native: '日本語', intl: 'ja-JP', currency: { code: 'JPY', symbol: '¥' } },
+  { code: 'zh', flag: '🇨🇳', label: 'Chinese', native: '中文', intl: 'zh-CN', currency: { code: 'CNY', symbol: '¥' } },
+  { code: 'tet', flag: '🇹🇱', label: 'Tetum', native: 'Tetun', intl: 'pt-TL', currency: { code: 'USD', symbol: '$' } },
+  { code: 'ms-sg', flag: '🇸🇬', label: 'Malay (Singapore)', native: 'Bahasa Melayu', intl: 'ms-SG', currency: { code: 'SGD', symbol: 'S$' } },
+  { code: 'ms-bn', flag: '🇧🇳', label: 'Malay (Brunei)', native: 'Bahasa Melayu', intl: 'ms-BN', currency: { code: 'BND', symbol: 'B$' } },
+]
+
+// Every locale the store can hold = the visible selector plus the destinations.
+const ALL_LOCALES: Locale[] = [...LOCALES, ...EXTENDED_LOCALES]
+
+// Variants share a translation/DeepL target with their base language.
 export function baseOf(code: string): string {
   if (code === 'en-SG') return 'en'
-  if (code === 'ms-BN') return 'ms'
+  if (code === 'ms-BN' || code === 'ms-sg' || code === 'ms-bn') return 'ms'
   return code
 }
 
 export function getLocaleMeta(code: string): Locale {
-  return LOCALES.find((l) => l.code === code) ?? LOCALES[0]
+  return ALL_LOCALES.find((l) => l.code === code) ?? LOCALES[0]
 }
 
 export function isSupported(code: string): boolean {
-  return LOCALES.some((l) => l.code === code)
+  return ALL_LOCALES.some((l) => l.code === code)
 }
 
 /** Map a raw browser locale (e.g. "vi-VN", "tl") to a supported code, or null. */
@@ -239,6 +255,48 @@ const MESSAGES: Record<string, Dict> = {
     close: 'ပိတ်ရန်', switching: 'ပြောင်းနေသည်…', current: 'လက်ရှိ', suggested: 'အကြံပြု',
     browserNote: 'သင့်ဘရောက်ဇာ ဘာသာစကားမှာ {locale} ဖြစ်နေသည်ကို တွေ့ရသည်။ အကောင်းဆုံး အတွေ့အကြုံအတွက် {lang} သို့ ပြောင်းလိုပါသလား?',
     langChanged: 'ဘာသာစကား ပြောင်းပြီးပါပြီ', sendMessage: 'မက်ဆေ့ချ် ပို့ရန်',
+  },
+  ja: {
+    information: '情報', termsPolicies: '規約とポリシー', showAllPolicies: 'すべての{n}件のポリシーを表示',
+    newsletter: '毎月の旅の便り', join: '登録', allRights: '© {year} {name}。無断転載を禁じます。',
+    privacy: 'プライバシー', cookies: 'クッキー', terms: '規約', accessibility: 'アクセシビリティ',
+    darkMode: 'ダークモード', lightMode: 'ライトモード', backToJournal: 'ジャーナルに戻る',
+    back: '戻る', print: 'このページを印刷', share: 'このページを共有', home: 'ホーム',
+    onThisPage: 'このページの内容', relatedArticles: '関連記事', faqTitle: 'よくある質問',
+    search: '検索', minRead: '読了 {n} 分', lastUpdated: '最終更新', version: 'バージョン',
+    langRecommend: '言語のおすすめ', chooseLanguage: 'ご希望の言語を選択',
+    switchTo: '{lang}に切り替える', stayIn: '{lang}のままにする', dontShowAgain: '今後表示しない',
+    close: '閉じる', switching: '切り替え中…', current: '現在', suggested: 'おすすめ',
+    browserNote: 'ブラウザの言語が{locale}に設定されています。最も正確な体験のために、{lang}に切り替えますか?',
+    langChanged: '言語を変更しました', sendMessage: 'メッセージを送信',
+  },
+  zh: {
+    information: '信息', termsPolicies: '条款与政策', showAllPolicies: '显示全部 {n} 项政策',
+    newsletter: '每月旅行简报', join: '订阅', allRights: '© {year} {name}。保留所有权利。',
+    privacy: '隐私', cookies: 'Cookie', terms: '条款', accessibility: '无障碍',
+    darkMode: '深色模式', lightMode: '浅色模式', backToJournal: '返回日志',
+    back: '返回', print: '打印此页', share: '分享此页', home: '首页',
+    onThisPage: '本页内容', relatedArticles: '相关文章', faqTitle: '常见问题',
+    search: '搜索', minRead: '阅读 {n} 分钟', lastUpdated: '最后更新', version: '版本',
+    langRecommend: '语言推荐', chooseLanguage: '选择您偏好的语言',
+    switchTo: '切换到{lang}', stayIn: '保持{lang}', dontShowAgain: '不再显示',
+    close: '关闭', switching: '正在切换…', current: '当前', suggested: '建议',
+    browserNote: '我们注意到您的浏览器语言为 {locale}。为获得最准确的体验，您想切换到{lang}吗？',
+    langChanged: '语言切换成功', sendMessage: '发送消息',
+  },
+  tet: {
+    information: 'Informasaun', termsPolicies: 'Termu & Polítika', showAllPolicies: 'Hatudu polítika {n} hotu',
+    newsletter: 'Notísia viajen, fulan-fulan', join: 'Partisipa', allRights: '© {year} {name}. Direitu hotu rezervadu.',
+    privacy: 'Privasidade', cookies: 'Cookies', terms: 'Termu', accessibility: 'Asesibilidade',
+    darkMode: 'Modu nakukun', lightMode: 'Modu naroman', backToJournal: 'Fila ba jornál',
+    back: 'Fila', print: 'Imprime pájina ida-ne\'e', share: 'Fahe pájina ida-ne\'e', home: 'Uma',
+    onThisPage: 'Iha pájina ida-ne\'e', relatedArticles: 'Artigu Relasionadu', faqTitle: 'Pergunta Baibain',
+    search: 'Buka', minRead: 'Lee minutu {n}', lastUpdated: 'Atualiza ikus', version: 'Versaun',
+    langRecommend: 'Rekomendasaun lian', chooseLanguage: 'Hili lian ne\'ebé ita hakarak',
+    switchTo: 'Muda ba {lang}', stayIn: 'Hela iha {lang}', dontShowAgain: 'Labele hatudu tan',
+    close: 'Taka', switching: 'Muda hela…', current: 'Atuál', suggested: 'Sujere',
+    browserNote: 'Ami haree katak ita-nia lian navegador maka {locale}. Ba esperiénsia di\'ak liu, ita hakarak muda ba {lang}?',
+    langChanged: 'Muda lian ho susesu', sendMessage: 'Haruka mensajen',
   },
 }
 

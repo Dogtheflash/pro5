@@ -40,8 +40,18 @@ function Root() {
   return <App />
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// Reuse a single root across HMR reloads so we never call createRoot()
+// twice on the same container.
+const container = document.getElementById('root')!
+const g = globalThis as typeof globalThis & { __appRoot?: ReactDOM.Root }
+const root = g.__appRoot ?? (g.__appRoot = ReactDOM.createRoot(container))
+root.render(
   <React.StrictMode>
     <Root />
   </React.StrictMode>,
 )
+
+// Keep the same root across hot updates instead of tearing it down/recreating.
+if (import.meta.hot) {
+  import.meta.hot.accept()
+}
