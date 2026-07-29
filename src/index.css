@@ -59,6 +59,19 @@ body {
    text that merely inherits its colour stays readable in night mode too. */
 [data-theme] {
   color: var(--color-foreground);
+  transition: background-color 0.4s ease-out, color 0.4s ease-out, border-color 0.4s ease-out;
+}
+
+/* Viewport scroll reveal */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 ::-webkit-scrollbar {

@@ -5818,12 +5818,13 @@ function BudgetBar({ country }: { country: Country }) {
         </div>
       </div>
 
-      {/* Stacked bar */}
-      <div className="h-3 flex rounded-none overflow-hidden mb-5">
+      {/* Stacked bar with smooth segment animation */}
+      <div className="h-3 flex rounded-none overflow-hidden mb-5 bg-[var(--color-muted)]">
         {byCategory.filter((b) => b.sum > 0).map(({ cat, pct }) => (
           <div
             key={cat}
             style={{ width: `${pct}%`, backgroundColor: CATEGORY_COLORS[cat] }}
+            className="transition-all duration-700 ease-out h-full"
             title={`${t('cat_' + cat)}: ${Math.round(pct)}%`}
           />
         ))}
@@ -5855,21 +5856,31 @@ function DayCard({ day, country, isActive, onClick }: { day: Day; country: Count
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left border transition-all duration-200 ${
+      className={`w-full text-left border transition-all duration-200 overflow-hidden ${
         isActive
           ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
           : 'border-[var(--color-border)] bg-[var(--color-card)] hover:border-[var(--color-primary)] hover:bg-[var(--color-muted)]'
       }`}
     >
-      <div className="p-3">
-        <div className={`font-mono text-xs mb-0.5 ${isActive ? 'opacity-70' : 'text-[var(--color-muted-foreground)]'}`}>
-          {dayLabel(lang, day.day)} · {day.date}
-        </div>
-        <div className={`font-display text-sm font-600 leading-tight ${isActive ? '' : 'text-[var(--color-foreground)]'}`}>
-          {day.city.split(' — ')[0]}
-        </div>
-        <div className={`font-mono text-xs mt-1 ${isActive ? 'opacity-80' : 'text-[var(--color-muted-foreground)]'}`}>
-          {formatMoney(dayTotal, country)}
+      <div className="p-2.5 flex items-center gap-3">
+        {day.coverImage && (
+          <img
+            src={day.coverImage}
+            alt=""
+            className="w-11 h-11 rounded object-cover flex-shrink-0 border border-black/10 shadow-sm"
+            loading="lazy"
+          />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className={`font-mono text-[11px] mb-0.5 ${isActive ? 'opacity-70' : 'text-[var(--color-muted-foreground)]'}`}>
+            {dayLabel(lang, day.day)} · {day.date}
+          </div>
+          <div className={`font-display text-sm font-600 leading-tight truncate ${isActive ? '' : 'text-[var(--color-foreground)]'}`}>
+            <Tx>{day.city.split(' — ')[0]}</Tx>
+          </div>
+          <div className={`font-mono text-xs mt-0.5 ${isActive ? 'opacity-80' : 'text-[var(--color-muted-foreground)]'}`}>
+            {formatMoney(dayTotal, country)}
+          </div>
         </div>
       </div>
     </button>
