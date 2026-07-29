@@ -5224,7 +5224,7 @@ function ScrollStory({
         <h2 className="mt-2 font-carve text-4xl leading-tight sm:text-5xl">
           <span className="script-rule">{title}</span>
         </h2>
-        <p className="mt-4 max-w-2xl font-thin-body text-lg leading-relaxed text-[var(--color-muted-foreground)]">{lead}</p>
+        <p className="mt-4 max-w-2xl font-thin-body text-lg leading-relaxed text-[var(--color-muted-foreground)]"><Tx>{lead}</Tx></p>
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">
