@@ -6506,7 +6506,6 @@ const SPECIALTY_I18N: Record<string, Record<string, LocCard>> = {
 
 // The localized card for the current country+language, or null to use English.
 const localizedCard = (countryId: string, lang: string, title: string): LocCard | null => {
-  if (baseLang(lang) !== baseLang(COUNTRY_LANG[countryId] ?? 'en')) return null
   return SPECIALTY_I18N[countryId]?.[title] ?? null
 }
 

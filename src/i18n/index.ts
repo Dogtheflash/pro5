@@ -17,12 +17,15 @@ export interface Locale {
 
 // The only languages that may appear in the selector.
 export const LOCALES: Locale[] = [
-  { code: 'en', flag: '🇬🇧', label: 'English', native: 'English', intl: 'en-US', currency: { code: 'USD', symbol: '$' } },
   { code: 'vi', flag: '🇻🇳', label: 'Vietnamese', native: 'Tiếng Việt', intl: 'vi-VN', currency: { code: 'VND', symbol: '₫' } },
+  { code: 'ja', flag: '🇯🇵', label: 'Japanese', native: '日本語', intl: 'ja-JP', currency: { code: 'JPY', symbol: '¥' } },
+  { code: 'en', flag: '🇬🇧', label: 'English', native: 'English', intl: 'en-US', currency: { code: 'USD', symbol: '$' } },
   { code: 'th', flag: '🇹🇭', label: 'Thai', native: 'ไทย', intl: 'th-TH', currency: { code: 'THB', symbol: '฿' } },
   { code: 'id', flag: '🇮🇩', label: 'Indonesian', native: 'Bahasa Indonesia', intl: 'id-ID', currency: { code: 'IDR', symbol: 'Rp' } },
   { code: 'ms', flag: '🇲🇾', label: 'Malay', native: 'Bahasa Melayu', intl: 'ms-MY', currency: { code: 'MYR', symbol: 'RM' } },
   { code: 'fil', flag: '🇵🇭', label: 'Filipino', native: 'Filipino', intl: 'fil-PH', currency: { code: 'PHP', symbol: '₱' } },
+  { code: 'zh', flag: '🇨🇳', label: 'Chinese', native: '中文', intl: 'zh-CN', currency: { code: 'CNY', symbol: '¥' } },
+  { code: 'ko', flag: '🇰🇷', label: 'Korean', native: '한국어', intl: 'ko-KR', currency: { code: 'KRW', symbol: '₩' } },
   { code: 'en-SG', flag: '🇸🇬', label: 'English (Singapore)', native: 'English', intl: 'en-SG', currency: { code: 'SGD', symbol: 'S$' } },
   { code: 'ms-BN', flag: '🇧🇳', label: 'Malay (Brunei)', native: 'Bahasa Melayu', intl: 'ms-BN', currency: { code: 'BND', symbol: 'B$' } },
   { code: 'km', flag: '🇰🇭', label: 'Khmer', native: 'ភាសាខ្មែរ', intl: 'km-KH', currency: { code: 'KHR', symbol: '៛' } },
