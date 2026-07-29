@@ -3,13 +3,14 @@ import { SITE, INFO_NAV, LEGAL_NAV } from './content'
 import { navigate, useColorMode } from './router'
 import { useT } from '../i18n'
 import LanguageSwitcher from '../i18n/LanguageSwitcher'
+import Tx from '../i18n/Tx'
 
 function FootLink({ slug, label }: { slug: string; label: string }) {
   return (
     <li>
       <button className="foot-link text-sm" onClick={() => navigate(slug)}>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden><path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        {label}
+        <Tx>{label}</Tx>
       </button>
     </li>
   )
@@ -37,7 +38,7 @@ export function SiteFooter() {
                   <span aria-hidden className="inline-flex w-8 h-8 items-center justify-center rounded-md" style={{ background: 'var(--s-accent)', color: '#fff' }}>◑</span>
                   {SITE.name}
                 </div>
-                <p className="mt-4 max-w-xs" style={{ color: 'var(--s-muted)' }}>{SITE.tagline}</p>
+                <p className="mt-4 max-w-xs" style={{ color: 'var(--s-muted)' }}><Tx>{SITE.tagline}</Tx></p>
 
                 <form className="mt-6 max-w-xs" onSubmit={(e) => e.preventDefault()}>
                   <label className="font-mono text-[11px] uppercase tracking-widest" style={{ color: 'var(--s-muted)' }}>{t('newsletter')}</label>
