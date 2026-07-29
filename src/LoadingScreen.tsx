@@ -1,21 +1,46 @@
 import { useEffect, useRef, useState } from 'react'
 
+interface SEAGreeting {
+  flag: string
+  text: string
+  lang: string
+  roman: string
+}
+
+const SEA_GREETINGS: SEAGreeting[] = [
+  { flag: '🇻🇳', text: 'Xin Chào', lang: 'Vietnam', roman: 'Xin Chào' },
+  { flag: '🇹🇭', text: 'สวัสดี', lang: 'Thailand', roman: 'Sawatdee' },
+  { flag: '🇮🇩', text: 'Selamat Datang', lang: 'Indonesia', roman: 'Selamat Datang' },
+  { flag: '🇵🇭', text: 'Mabuhay', lang: 'Philippines', roman: 'Mabuhay' },
+  { flag: '🇰🇭', text: 'សួស្ដី', lang: 'Cambodia', roman: 'Suostei' },
+  { flag: '🇱🇦', text: 'ສະບາຍດີ', lang: 'Laos', roman: 'Sabaidee' },
+  { flag: '🇲🇲', text: 'မင်္ဂလာပါ', lang: 'Myanmar', roman: 'Mingalaba' },
+  { flag: '🇲🇾', text: 'Apa Khabar', lang: 'Malaysia', roman: 'Apa Khabar' },
+  { flag: '🇸🇬', text: 'Welcome', lang: 'Singapore', roman: 'Welcome' },
+  { flag: '🇧🇳', text: 'Selamat Datang', lang: 'Brunei', roman: 'Selamat Datang' },
+  { flag: '🇹🇱', text: 'Bem-vindo', lang: 'East Timor', roman: 'Bem-vindo' },
+  { flag: '🇯🇵', text: 'こんにちは', lang: 'Japan', roman: 'Konnichiwa' },
+  { flag: '🇨🇳', text: '你好', lang: 'China', roman: 'Nǐ Hǎo' },
+]
+
 /**
- * iOS 26 "Liquid Glass" loading screen.
+ * iOS 26 "Liquid Glass" loading screen with dynamic Southeast Asian greetings.
  *
  * A living gradient mesh drifts behind a frosted, spring-loaded glass squircle
- * with a rotating specular highlight. A progress pill fills with fluid easing,
- * then the whole screen dismisses with the signature blur-and-scale reveal.
+ * with a rotating specular highlight. After ~2 seconds, greetings automatically
+ * switch through all Southeast Asian languages with smooth transitions.
  */
 export default function LoadingScreen({ onDone, montage = [] }: { onDone: () => void; montage?: string[] }) {
   const [progress, setProgress] = useState(0)
   const [ready, setReady] = useState(false)
   const [dismissing, setDismissing] = useState(false)
   const [scene, setScene] = useState(0)
+  const [greetingIdx, setGreetingIdx] = useState(0)
+  const [fadeGreeting, setFadeGreeting] = useState(true)
   const rafRef = useRef<number>(0)
 
   useEffect(() => {
-    const duration = 2600
+    const duration = 3000
     const start = performance.now()
 
     const tick = (now: number) => {
@@ -41,7 +66,27 @@ export default function LoadingScreen({ onDone, montage = [] }: { onDone: () => 
     return () => clearInterval(id)
   }, [montage.length])
 
+  // Wait about 2 seconds, then cycle greetings every 1.6s
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    const initialTimer = setTimeout(() => {
+      interval = setInterval(() => {
+        setFadeGreeting(false)
+        setTimeout(() => {
+          setGreetingIdx((prev) => (prev + 1) % SEA_GREETINGS.length)
+          setFadeGreeting(true)
+        }, 220)
+      }, 1600)
+    }, 2000)
+
+    return () => {
+      clearTimeout(initialTimer)
+      if (interval) clearInterval(interval)
+    }
+  }, [])
+
   const pct = Math.round(progress * 100)
+  const currentGreeting = SEA_GREETINGS[greetingIdx]
 
   return (
     <div
@@ -89,9 +134,9 @@ export default function LoadingScreen({ onDone, montage = [] }: { onDone: () => 
           <div className="ios-breathe absolute -inset-8 rounded-[42%] bg-[radial-gradient(circle,rgba(224,137,74,0.6),transparent_70%)] blur-2xl" />
 
           <div
-            className="relative flex h-32 w-32 items-center justify-center overflow-hidden border border-white/25 shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.6)]"
+            className="relative flex h-36 w-36 items-center justify-center overflow-hidden border border-white/25 shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.6)] p-3"
             style={{
-              borderRadius: '34px',
+              borderRadius: '38px',
               background:
                 'linear-gradient(145deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04))',
               backdropFilter: 'blur(18px)',
@@ -100,7 +145,7 @@ export default function LoadingScreen({ onDone, montage = [] }: { onDone: () => 
           >
             {/* Rotating specular sweep */}
             <div
-              className="ios-specular absolute -inset-1/2 opacity-70"
+              className="ios-specular absolute -inset-1/2 opacity-70 pointer-events-none"
               style={{
                 background:
                   'conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.5) 40deg, transparent 90deg, transparent 360deg)',
@@ -108,18 +153,39 @@ export default function LoadingScreen({ onDone, montage = [] }: { onDone: () => 
             />
             {/* Glass edge highlight */}
             <div
-              className="absolute inset-0"
-              style={{ borderRadius: '34px', boxShadow: 'inset 0 -12px 24px rgba(0,0,0,0.25)' }}
+              className="absolute inset-0 pointer-events-none"
+              style={{ borderRadius: '38px', boxShadow: 'inset 0 -12px 24px rgba(0,0,0,0.25)' }}
             />
-            {/* The mark — a torii, nodding to the journal within */}
-            <span className="relative font-display text-6xl font-600 leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
-              鳥
-            </span>
+            {/* Dynamic greeting mark with smooth crossfade */}
+            <div
+              className={`relative flex flex-col items-center justify-center text-center transition-all duration-300 ${
+                fadeGreeting ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}
+            >
+              <span className="text-4xl leading-none drop-shadow-md mb-1">{currentGreeting.flag}</span>
+              <span className="font-display text-sm font-600 text-white leading-tight max-w-[110px] truncate drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+                {currentGreeting.text}
+              </span>
+            </div>
           </div>
         </div>
 
+        {/* Dynamic Country Greeting Pill */}
+        <div
+          className={`ios-rise mt-5 text-center transition-all duration-300 ${
+            fadeGreeting ? 'opacity-100 translateY(0)' : 'opacity-0 translateY(2px)'
+          }`}
+        >
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 font-mono text-xs text-white/90 backdrop-blur-md shadow-lg">
+            <span>{currentGreeting.flag}</span>
+            <span className="font-600">{currentGreeting.lang}</span>
+            <span className="text-white/40">·</span>
+            <span className="text-amber-300 font-medium">{currentGreeting.roman}</span>
+          </span>
+        </div>
+
         {/* Wordmark */}
-        <div className="ios-rise mt-10 text-center" style={{ animationDelay: '0.35s' }}>
+        <div className="ios-rise mt-6 text-center" style={{ animationDelay: '0.35s' }}>
           <h1 className="ios-shimmer-text font-display text-3xl font-600 tracking-tight">
             The Asia Grand Tour
           </h1>
@@ -134,12 +200,12 @@ export default function LoadingScreen({ onDone, montage = [] }: { onDone: () => 
         </div>
 
         {/* Progress pill → Start button */}
-        <div className="mt-12 flex h-20 w-64 max-w-[70vw] items-start justify-center">
+        <div className="mt-10 flex h-20 w-64 max-w-[70vw] items-start justify-center">
           {ready ? (
             <button
               type="button"
               onClick={() => setDismissing(true)}
-              className="ios-spring-in group relative flex items-center gap-3 overflow-hidden rounded-full border border-white/25 px-9 py-3.5 font-mono text-sm uppercase tracking-[0.25em] text-white transition-transform duration-300 ease-out hover:scale-[1.04] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="ios-spring-in group relative flex items-center gap-3 overflow-hidden rounded-full border border-white/25 px-9 py-3.5 font-mono text-sm uppercase tracking-[0.25em] text-white transition-transform duration-300 ease-out hover:scale-[1.04] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 cursor-pointer"
               style={{
                 background: 'linear-gradient(145deg, rgba(255,255,255,0.28), rgba(255,255,255,0.06))',
                 backdropFilter: 'blur(18px)',
