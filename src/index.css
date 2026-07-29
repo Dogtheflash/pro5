@@ -667,7 +667,7 @@ body {
 
 /* Footer column links slide + brighten on hover */
 .foot-link {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: flex; align-items: flex-start; text-align: left; gap: 6px; width: 100%;
   color: var(--s-muted); transition: color 0.2s, transform 0.2s, letter-spacing 0.2s;
 }
 .foot-link:hover, .foot-link:focus-visible {
