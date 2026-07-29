@@ -74,6 +74,80 @@ body {
   transform: translateY(0);
 }
 
+/* ── Eye-Catching Animation & Glassmorphism Utilities ────────────────────── */
+
+/* Floating animation */
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-float {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
+/* Pulsing ambient glow */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.02); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Shimmer metallic sheen */
+@keyframes shine-sweep {
+  0% { transform: translateX(-150%) rotate(25deg); }
+  100% { transform: translateX(250%) rotate(25deg); }
+}
+
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+.shine-effect::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 60%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(25deg);
+  pointer-events: none;
+  animation: shine-sweep 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Glassmorphic Card Polish */
+.glass-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 35px 0 rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-card {
+  background: rgba(26, 22, 18, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 10px 35px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Interactive Card Elevate */
+.hover-elevate {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease;
+}
+.hover-elevate:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.16);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

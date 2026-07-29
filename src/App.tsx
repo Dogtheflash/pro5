@@ -6307,17 +6307,17 @@ function DiscoverSoutheastAsiaSection({ onExploreDestinations }: { onExploreDest
   ]
 
   return (
-    <section className="my-12 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-6 sm:p-10 shadow-xl overflow-hidden relative">
+    <section className="my-12 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-6 sm:p-10 shadow-2xl overflow-hidden relative shine-effect hover-elevate">
       {/* Background Ambient Glows */}
-      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 rounded-full bg-[var(--color-primary)]/10 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-96 h-96 rounded-full bg-[var(--color-accent)]/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 rounded-full bg-[var(--color-primary)]/15 blur-3xl pointer-events-none animate-pulse-glow" />
+      <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-96 h-96 rounded-full bg-[var(--color-accent)]/15 blur-3xl pointer-events-none animate-pulse-glow" />
 
       {/* Hero Section */}
       <div className="mb-10 text-center max-w-3xl mx-auto">
         <div className="font-mono text-xs uppercase tracking-[0.35em] text-[var(--color-primary)] mb-2">
           Grand Tour Regional Showcase
         </div>
-        <h2 className="font-carve text-3xl sm:text-5xl font-600 leading-tight mb-4">
+        <h2 className="font-carve text-3xl sm:text-5xl font-600 leading-tight mb-4 bg-gradient-to-r from-[var(--color-foreground)] via-[var(--color-primary)] to-[var(--color-foreground)] bg-clip-text text-transparent">
           Discover Southeast Asia — Journeys & Flavors From Every Corner
         </h2>
         <p className="font-display text-xl italic text-[var(--color-primary)] mb-4">
@@ -6387,10 +6387,10 @@ function DiscoverSoutheastAsiaSection({ onExploreDestinations }: { onExploreDest
         <h3 className="font-carve text-2xl mb-6 text-center">Featured Destinations Across Southeast Asia</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {SEA_DESTINATIONS.map((item) => (
-            <div key={item.country} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+            <div key={item.country} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-sm hover-elevate cursor-pointer">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl leading-none">{item.flag}</span>
-                <h4 className="font-carve text-xl">{item.country}</h4>
+                <span className="text-2xl leading-none animate-float">{item.flag}</span>
+                <h4 className="font-carve text-xl text-[var(--color-primary)]">{item.country}</h4>
               </div>
               <p className="font-body text-sm text-[var(--color-muted-foreground)] leading-relaxed">
                 {item.text}
