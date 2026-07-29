@@ -740,9 +740,10 @@ body {
 
 /* ══ Floating version switcher (V1 / V2 compare tool) ═══════════════════ */
 .vswitch {
-  position: fixed;
-  bottom: 18px;
-  right: 18px;
+  position: fixed !important;
+  bottom: 18px !important;
+  top: auto !important;
+  right: 18px !important;
   z-index: 2147483000; /* above modals & portals — it's a dev/compare overlay */
   display: flex;
   align-items: center;

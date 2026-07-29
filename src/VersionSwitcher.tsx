@@ -49,7 +49,12 @@ export default function VersionSwitcher({
   }
 
   return (
-    <div className="vswitch" role="group" aria-label="Preview UI version">
+    <div
+      className="vswitch"
+      style={{ position: 'fixed', bottom: '18px', right: '18px', top: 'auto', zIndex: 2147483000 }}
+      role="group"
+      aria-label="Preview UI version"
+    >
       <span className="vswitch-label">Compare UI</span>
       <div className={`vswitch-track ${pulse ? 'vswitch-pulse' : ''}`} data-active={value}>
         {/* Sliding accent highlight */}
