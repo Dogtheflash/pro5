@@ -741,8 +741,8 @@ body {
 /* ══ Floating version switcher (V1 / V2 compare tool) ═══════════════════ */
 .vswitch {
   position: fixed;
-  top: 14px;
-  right: 14px;
+  bottom: 18px;
+  right: 18px;
   z-index: 2147483000; /* above modals & portals — it's a dev/compare overlay */
   display: flex;
   align-items: center;
@@ -837,7 +837,7 @@ body {
 
 /* Icon-only compaction on small screens */
 @media (max-width: 640px) {
-  .vswitch { top: 10px; right: 10px; padding: 6px; gap: 0; }
+  .vswitch { bottom: 12px; right: 12px; padding: 6px; gap: 0; }
   .vswitch-label { display: none; }
   .vswitch-opt { min-width: 30px; padding: 4px 8px; font-size: 11px; }
 }
