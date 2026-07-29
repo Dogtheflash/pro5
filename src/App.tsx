@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import LoadingScreen from './LoadingScreen'
 import { SiteFooter } from './site/footer'
 import LanguageDetectModal from './LanguageDetectModal'
+import { VietSpecialsNetflixSection } from './site/VietSpecialsNetflixSection'
 import { getLocale, setLocale, isSupported, useLocale } from './i18n'
 import { Tx } from './i18n/Tx'
 
@@ -7419,6 +7420,15 @@ export default function App() {
           <DiscoverSoutheastAsiaSection
             onExploreDestinations={() => window.scrollTo({ top: 400, behavior: 'smooth' })}
             onAddToCart={addToCart}
+          />
+        </ScrollReveal>
+
+        {/* ── Đặc Sản Du Lịch Việt — Netflix-Style Hover-Preview & Red Seal Stamp ── */}
+        <ScrollReveal>
+          <VietSpecialsNetflixSection
+            onAddToCart={addToCart}
+            onToggleWishlist={(item) => toggleWishlist({ day: 99, city: item.name, date: item.province, activities: [] }, item.province)}
+            wishlistIds={wishlist.map((w) => w.city)}
           />
         </ScrollReveal>
 
