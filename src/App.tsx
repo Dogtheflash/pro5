@@ -4987,18 +4987,59 @@ function LocalTime({ country }: { country: Country }) {
   const offset = dtf({ timeZoneName: 'shortOffset' }).split(' ').pop()
 
   return (
-    <section className="mb-8 flex flex-col gap-4 border border-[var(--color-border)] bg-[var(--color-card)] p-5 sm:flex-row sm:items-center sm:justify-between">
+const COUNTRY_CLIMATE: Record<string, string> = {
+  vietnam: '🌤️ 26°C · Dry Season · Ideal Exploration',
+  thailand: '☀️ 31°C · Sunny & Tropical · Festival Season',
+  indonesia: '⛅ 28°C · Tropical Breeze · Great Beach Season',
+  laos: '☀️ 25°C · Cool Mountain Breeze',
+  cambodia: '🌤️ 28°C · Pleasant & Sunny',
+  myanmar: '☀️ 27°C · Dry & Golden Sunshine',
+  malaysia: '☀️ 29°C · Warm & Sunny',
+  singapore: '🌦️ 30°C · Tropical Sun & Showers',
+  philippines: '☀️ 30°C · Clear Sky & Island Seas',
+  brunei: '☀️ 29°C · Tropical Sun',
+  timor: '☀️ 28°C · Warm Coastal Breeze',
+  japan: '☀️ 18°C · Crisp & Clear · Peak Foliage',
+  china: '🌤️ 16°C · Cool & Crisp',
+}
+
+function LocalTime({ country }: { country: Country }) {
+  const meta = TIMEZONES[country.id]
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 1000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const fmt = (opts: Intl.DateTimeFormatOptions) => {
+    try {
+      return new Intl.DateTimeFormat('en-US', { ...opts, timeZone: meta?.tz }).format(now)
+    } catch {
+      return ''
+    }
+  }
+
+  const time = fmt({ hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  const weekday = fmt({ weekday: 'long' })
+  const day = fmt({ day: 'numeric' })
+  const month = fmt({ month: 'long' })
+  const year = fmt({ year: 'numeric' })
+  const offset = currentOffset(meta?.tz)
+
+  return (
+    <section className="mb-8 flex flex-col gap-4 border border-[var(--color-border)] bg-[var(--color-card)] p-5 sm:flex-row sm:items-center sm:justify-between shadow-sm">
       <div className="flex items-center gap-3">
-        <span className="text-2xl leading-none">{country.flag}</span>
+        <span className="text-3xl leading-none">{country.flag}</span>
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-muted-foreground)]">
             Local time in {country.name}
           </div>
           <div className="font-display text-lg font-600 leading-tight">
-            {weekday}
+            {weekday} · {day} {month} {year}
           </div>
-          <div className="font-body text-sm text-[var(--color-muted-foreground)]">
-            {day} {month} {year}
+          <div className="font-mono text-xs font-500 text-[var(--color-primary)] mt-1">
+            {COUNTRY_CLIMATE[country.id] ?? '☀️ 26°C · Pleasant Weather'}
           </div>
         </div>
       </div>
@@ -6032,25 +6073,34 @@ function VideoLayer({
 function DayDetail({ day, country }: { day: Day; country: Country }) {
   const t = useT()
   const lang = useContext(LangContext)
+  const [selectedCat, setSelectedCat] = useState<string>('all')
+  const [search, setSearch] = useState('')
+
   const dayTotal = day.activities.reduce((s, a) => s + a.cost, 0)
   const hasFood = day.activities.some((a) => a.category === 'food')
   const heroVideo = heroVideoFor(country.id, day.city)
+
+  const filteredActivities = day.activities.filter((a) => {
+    const matchesCat = selectedCat === 'all' || a.category === selectedCat
+    const matchesSearch = !search.trim() || 
+      a.title.toLowerCase().includes(search.toLowerCase()) || 
+      a.description.toLowerCase().includes(search.toLowerCase())
+    return matchesCat && matchesSearch
+  })
 
   return (
     <div>
       {/* Hero */}
       <div className="relative h-52 overflow-hidden bg-[var(--color-muted)] mb-6">
         <HeroMedia videoSrc={heroVideo} image={day.coverImage} alt={day.coverAlt} />
-        {/* Dark overlay keeps the title & subtitle readable over any footage */}
         <div className="absolute inset-0 bg-black/35" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        {/* Steam drifts up when the day includes a meal worth lingering over */}
         {hasFood && <Steam />}
         <div className="absolute bottom-0 left-0 right-0 p-5">
           <div className="font-mono text-xs text-white/70 mb-1">{dayLabel(lang, day.day)} · {day.date}</div>
-          <h2 className="font-display text-2xl font-600 text-white leading-tight">{day.city}</h2>
+          <h2 className="font-display text-2xl font-600 text-white leading-tight"><Tx>{day.city}</Tx></h2>
           <div className="font-mono text-xs text-white/80 mt-2">
-            <span className="mr-1">→</span>{day.transport}
+            <span className="mr-1">→</span><Tx>{day.transport}</Tx>
           </div>
         </div>
       </div>
@@ -6058,50 +6108,84 @@ function DayDetail({ day, country }: { day: Day; country: Country }) {
       {/* Activities */}
       <div className="bg-[var(--color-card)] border border-[var(--color-border)] mb-4 overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-3 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-muted)]/50">
+        <div className="px-5 py-3 border-b border-[var(--color-border)] flex flex-wrap items-center justify-between gap-3 bg-[var(--color-muted)]/50">
           <div className="flex items-center gap-2.5">
             <span className="font-display text-base font-600">{t('schedule')}</span>
             <span
               className="font-mono text-[9px] uppercase tracking-widest px-2 py-[3px] rounded-full"
               style={{ backgroundColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
             >
-              {day.activities.length} stops
+              {filteredActivities.length} / {day.activities.length} stops
             </span>
           </div>
-          <span className="font-mono text-sm font-600 text-[var(--color-primary)]">
-            {formatMoney(dayTotal, country)} {t('today')}
-          </span>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search stops..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-32 sm:w-44 rounded-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-1 text-xs outline-none focus:border-[var(--color-primary)] font-mono text-[var(--color-foreground)]"
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="absolute right-2.5 top-1 text-xs text-[var(--color-muted-foreground)]">✕</button>
+              )}
+            </div>
+            <span className="font-mono text-sm font-600 text-[var(--color-primary)]">
+              {formatMoney(dayTotal, country)} {t('today')}
+            </span>
+          </div>
         </div>
 
-        {/* Category legend */}
-        {(() => {
-          const cats = (Object.keys(CATEGORY_COLORS) as Activity['category'][]).filter(
-            (cat) => day.activities.some((a) => a.category === cat),
-          )
-          return cats.length > 1 ? (
-            <div className="px-5 py-2 border-b border-[var(--color-border)] flex gap-4 flex-wrap">
-              {cats.map((cat) => (
-                <div key={cat} className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[cat] }} />
-                  <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
-                    {CATEGORY_LABELS[cat]}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : null
-        })()}
+        {/* Category Filter Pills */}
+        <div className="px-5 py-2 border-b border-[var(--color-border)] flex gap-2 flex-wrap items-center bg-[var(--color-muted)]/20">
+          <button
+            onClick={() => setSelectedCat('all')}
+            className={`font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
+              selectedCat === 'all'
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white font-600'
+                : 'border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]'
+            }`}
+          >
+            All ({day.activities.length})
+          </button>
+          {(Object.keys(CATEGORY_COLORS) as Activity['category'][]).map((cat) => {
+            const count = day.activities.filter((a) => a.category === cat).length
+            if (count === 0) return null
+            const isSel = selectedCat === cat
+            return (
+              <button
+                key={cat}
+                onClick={() => setSelectedCat(isSel ? 'all' : cat)}
+                className={`font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full border transition-all flex items-center gap-1.5 cursor-pointer ${
+                  isSel
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white font-600'
+                    : 'border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[cat] }} />
+                {t('cat_' + cat)} ({count})
+              </button>
+            )
+          })}
+        </div>
 
         {/* Timeline */}
         <div className="px-5 pt-5 pb-3">
-          {day.activities.map((activity, i) => (
-            <ActivityRow
-              key={i}
-              activity={activity}
-              country={country}
-              isLast={i === day.activities.length - 1}
-            />
-          ))}
+          {filteredActivities.length > 0 ? (
+            filteredActivities.map((activity, i) => (
+              <ActivityRow
+                key={i}
+                activity={activity}
+                country={country}
+                isLast={i === filteredActivities.length - 1}
+              />
+            ))
+          ) : (
+            <div className="py-8 text-center font-mono text-xs text-[var(--color-muted-foreground)] uppercase tracking-wider">
+              No stops match your search
+            </div>
+          )}
         </div>
       </div>
     </div>
