@@ -1,10 +1,1 @@
-{
-  "description": "Plan your perfect week in Japan with a customizable 7-day itinerary, including daily activities, transportation options, and budget tracking.",
-  "robots": {
-    "index": false
-  },
-  "accessibility": {
-    "addBypassLinks": false,
-    "ignoreReducedMotion": false
-  }
-}
+{"title":"The Asia Grand Tour","description":"Plan your perfect Asia adventure"}

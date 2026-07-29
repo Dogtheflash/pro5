@@ -1,0 +1,8 @@
+{
+  "hero": {
+    "title": "Welcome to the Asia Grand Tour",
+    "subtitle": "Plan your trip across Southeast Asia."
+  },
+  "cta": { "explore": "Explore now" },
+  "search": { "placeholder": "Search destinations" }
+}

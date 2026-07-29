@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400&family=Source+Sans+3:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400&family=Source+Sans+3:wght@200;300;400;500;600&family=DM+Mono:wght@300;400;500&family=Rye&family=Caveat:wght@500;700&display=swap');
 @import 'tailwindcss';
 
 @theme inline {
@@ -21,10 +21,27 @@
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Source Sans 3', system-ui, sans-serif;
   --font-mono: 'DM Mono', 'Courier New', monospace;
+  --font-carve: 'Rye', 'Fraunces', Georgia, serif;
+  --font-script: 'Caveat', 'Fraunces', cursive;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  max-width: 100%;
+  /* Never let a full-bleed section push the page sideways.
+     Use `clip`, not `hidden`: `overflow-x: hidden` forces `overflow-y` to
+     compute to `auto`, turning these elements into scroll containers — which
+     breaks `position: sticky` and stops window scroll events from firing (the
+     Rice Grain Journey crossfade got stuck on the first chapter as a result).
+     `clip` contains the overflow without creating a scroll container. */
+  overflow-x: clip;
 }
 
 html {
@@ -36,6 +53,12 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+}
+
+/* The themed root carries the (possibly overridden) foreground colour, so all
+   text that merely inherits its colour stays readable in night mode too. */
+[data-theme] {
+  color: var(--color-foreground);
 }
 
 ::-webkit-scrollbar {
@@ -62,6 +85,233 @@ body {
 }
 .font-mono {
   font-family: var(--font-mono);
+}
+.font-carve {
+  font-family: var(--font-carve);
+  /* A shallow inked/carved relief — like type pressed into woodblock */
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.18),
+    0 2px 3px rgba(0, 0, 0, 0.12),
+    0 -1px 0 rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.01em;
+}
+.font-script {
+  font-family: var(--font-script);
+}
+.font-thin-body {
+  font-family: var(--font-body);
+  font-weight: 200;
+}
+
+/* ── Khmer/Lao/Thai-inspired decorative underline ──────────────────
+   Not writing — just borrowing the looped, curling terminal of the
+   script's strokes as an ornamental rule under headings. */
+.script-rule {
+  position: relative;
+  display: inline-block;
+}
+.script-rule::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: -0.4em;
+  bottom: -0.5em;
+  height: 0.6em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12' preserveAspectRatio='none'%3E%3Cpath d='M2 8 C 14 2, 22 2, 30 7 S 46 12, 54 7 S 70 2, 80 7 C 88 11, 96 11, 104 6 C 109 3, 114 4, 116 9' fill='none' stroke='%23c0392b' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='116' cy='9' r='2.4' fill='none' stroke='%23c0392b' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Numbered-sequence index — a carved journey marker, finished with a
+   looping stroke that borrows the curling terminal of Khmer/Lao/Thai
+   letterforms (the feel of the stroke, not the script itself). */
+.journey-index {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-carve);
+  line-height: 0.8;
+  color: var(--color-primary);
+  opacity: 0.9;
+  padding-bottom: 0.28em;
+}
+.journey-index::after {
+  content: '';
+  position: absolute;
+  left: -0.08em;
+  right: -0.34em;
+  bottom: 0;
+  height: 0.42em;
+  background-color: currentColor;
+  opacity: 0.85;
+  pointer-events: none;
+  --curl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 16' preserveAspectRatio='none'%3E%3Cpath d='M3 9 C 12 3, 22 3, 30 8 S 48 13, 58 8 C 66 4, 74 6, 72 11 C 71 14, 66 14, 66 10' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask: var(--curl) no-repeat center / 100% 100%;
+  mask: var(--curl) no-repeat center / 100% 100%;
+}
+
+/* ── "Night market" mode — a full atmosphere change, not an invert ── */
+[data-theme='night'] {
+  --color-background: #120e18;
+  --color-foreground: #f4ead9;
+  --color-card: #1c1524;
+  --color-card-foreground: #f4ead9;
+  --color-secondary: #2a2033;
+  --color-secondary-foreground: #e8dcc9;
+  --color-muted: #241a2e;
+  --color-muted-foreground: #b09b8f;
+  --color-border: #3a2c44;
+}
+[data-theme='night'] body,
+[data-theme='night'] {
+  /* Warm lantern glow bleeding in from the edges of the stalls */
+  background-image:
+    radial-gradient(60% 45% at 12% 0%, rgba(232, 137, 74, 0.16), transparent 70%),
+    radial-gradient(55% 45% at 92% 8%, rgba(192, 57, 43, 0.16), transparent 70%),
+    radial-gradient(70% 60% at 50% 108%, rgba(123, 45, 142, 0.2), transparent 70%);
+  background-attachment: fixed;
+}
+[data-theme='night'] .font-carve {
+  text-shadow:
+    0 0 14px rgba(232, 137, 74, 0.35),
+    0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ── Passport page-flip country transition ─────────────────────────
+   The whole country panel turns like a stiff passport page. */
+@keyframes passport-flip {
+  0% {
+    transform: perspective(2200px) rotateY(-92deg);
+    transform-origin: left center;
+    opacity: 0;
+    filter: brightness(0.6);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: perspective(2200px) rotateY(0deg);
+    transform-origin: left center;
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+.passport-flip {
+  animation: passport-flip 0.72s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  backface-visibility: hidden;
+}
+/* A soft spine shadow that sweeps as the page turns */
+@keyframes passport-spine {
+  0% { opacity: 0.55; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(0.2); }
+}
+.passport-spine {
+  animation: passport-spine 0.72s ease-out both;
+  transform-origin: left center;
+}
+/* A band of light catching the page as it swings shut — the gloss of a
+   passport page turning under a lamp. */
+@keyframes passport-sheen {
+  0%   { opacity: 0;   transform: translateX(-40%) skewX(-12deg); }
+  35%  { opacity: 0.7; }
+  100% { opacity: 0;   transform: translateX(240%) skewX(-12deg); }
+}
+.passport-sheen {
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: passport-sheen 0.72s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  mix-blend-mode: overlay;
+}
+
+/* ── Water-ripple CTA (Southeast Asian rivers) ─────────────────────── */
+.ripple-btn {
+  position: relative;
+  overflow: hidden;
+}
+.ripple-btn .ripple {
+  position: absolute;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%) scale(0);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12) 45%, transparent 70%);
+  pointer-events: none;
+  animation: ripple-spread 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes ripple-spread {
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+/* A perpetual gentle shimmer, like light on river water */
+@keyframes river-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ── Steam / smoke rising from hot food ────────────────────────────── */
+@keyframes steam-rise {
+  0% {
+    transform: translateY(8px) scaleX(0.9);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-46px) scaleX(1.5);
+    opacity: 0;
+  }
+}
+.steam {
+  position: absolute;
+  bottom: 6%;
+  width: 22px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.65), transparent 70%);
+  filter: blur(6px);
+  animation: steam-rise 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Cultural loading / empty state: sand in a bamboo clock ─────────── */
+@keyframes sand-fall {
+  0% { transform: translateY(-10px); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(34px); opacity: 0; }
+}
+@keyframes sand-pile {
+  0% { transform: scaleX(0.2) scaleY(0.1); }
+  100% { transform: scaleX(1) scaleY(1); }
+}
+@keyframes gentle-sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+.sand-stream {
+  animation: sand-fall 1.6s linear infinite;
+}
+
+/* ── Region cards — staggered entrance when the grid appears ───────── */
+@keyframes region-pop {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.97); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.region-pop {
+  animation: region-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .region-pop,
+  .passport-flip,
+  .passport-spine,
+  .passport-sheen,
+  .steam,
+  .sand-stream,
+  .ripple-btn .ripple {
+    animation: none !important;
+  }
 }
 
 /* ── iOS 26 "Liquid Glass" loading screen ─────────────────────────── */
@@ -156,6 +406,10 @@ body {
   .ios-spring-in, .ios-rise { animation-duration: 0.4s; }
 }
 
+/* Hide the horizontal scrollbar on the festival timeline (arrow-driven) */
+.hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
 /* ── Cinematic "intro film" — Ken Burns crossfade montage ──────────── */
 @keyframes kenburns {
   0%   { transform: scale(1.04) translate(0, 0); }
@@ -237,7 +491,158 @@ body {
 }
 .tick-in { animation: tick-in 0.35s ease-out both; }
 
+/* ── Country switch — cinematic backdrop transition ────────────────── */
+/* A diagonal band of the incoming country's accent light sweeps across. */
+@keyframes country-sweep {
+  0%   { opacity: 0; transform: translateX(-60%) skewX(-12deg); }
+  22%  { opacity: 0.85; }
+  100% { opacity: 0; transform: translateX(160%) skewX(-12deg); }
+}
+.country-sweep { animation: country-sweep 1.15s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+/* Incoming backdrop drifts in with a slow Ken Burns push. */
+@keyframes country-drift {
+  0%   { transform: scale(1.16); }
+  100% { transform: scale(1.06); }
+}
+.country-drift { animation: country-drift 7s ease-out both; }
+
+/* Quick brightness bloom over the whole scene as the country flips. */
+@keyframes country-bloom {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+.country-bloom { animation: country-bloom 0.9s ease-out forwards; }
+
 @media (prefers-reduced-motion: reduce) {
   .flip-inner { transition: none; }
   .fly-in, .fly-sweep, .map-ping, .tick-in { animation: none; }
+  .country-sweep, .country-drift, .country-bloom { animation: none; }
+}
+
+/* ══ Site chrome — premium footer + policy/info pages ════════════════════
+   Scoped design tokens so Light/Dark Mode can be toggled here WITHOUT
+   disturbing the archival travel-journal app. Everything lives under
+   `.site-scope`; add `.dark` to switch palettes. */
+.site-scope {
+  --s-bg: #f2ece1;
+  --s-fg: #1f1a15;
+  --s-muted: #6f6458;
+  --s-border: rgba(120, 100, 78, 0.22);
+  --s-accent: #c0392b;
+  --s-accent-2: #b5843a;
+  --s-glass: rgba(255, 253, 249, 0.55);
+  --s-glass-strong: rgba(255, 253, 249, 0.78);
+  --s-glass-brd: rgba(255, 255, 255, 0.6);
+  --s-shadow: 0 8px 40px rgba(60, 45, 25, 0.14);
+  --s-hi: rgba(255, 255, 255, 0.7);
+  color: var(--s-fg);
+}
+.site-scope.dark {
+  --s-bg: #14110d;
+  --s-fg: #f2ece1;
+  --s-muted: #a99e8f;
+  --s-border: rgba(220, 205, 180, 0.16);
+  --s-accent: #e35d4f;
+  --s-accent-2: #d8a24e;
+  --s-glass: rgba(38, 32, 26, 0.55);
+  --s-glass-strong: rgba(38, 32, 26, 0.8);
+  --s-glass-brd: rgba(255, 255, 255, 0.08);
+  --s-shadow: 0 8px 40px rgba(0, 0, 0, 0.45);
+  --s-hi: rgba(255, 255, 255, 0.06);
+}
+
+/* Frosted-glass surface */
+.glass {
+  background: var(--s-glass);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid var(--s-glass-brd);
+  box-shadow: var(--s-shadow), inset 0 1px 0 var(--s-hi);
+}
+.glass-strong {
+  background: var(--s-glass-strong);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  backdrop-filter: blur(22px) saturate(1.4);
+  border: 1px solid var(--s-glass-brd);
+  box-shadow: var(--s-shadow), inset 0 1px 0 var(--s-hi);
+}
+
+/* Animated underline that grows from the left on hover/focus */
+.link-underline { position: relative; }
+.link-underline::after {
+  content: ''; position: absolute; left: 0; bottom: -2px; height: 1px; width: 100%;
+  background: var(--s-accent); transform: scaleX(0); transform-origin: left;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.link-underline:hover::after, .link-underline:focus-visible::after { transform: scaleX(1); }
+
+/* Footer column links slide + brighten on hover */
+.foot-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--s-muted); transition: color 0.2s, transform 0.2s, letter-spacing 0.2s;
+}
+.foot-link:hover, .foot-link:focus-visible {
+  color: var(--s-accent); transform: translateX(4px); letter-spacing: 0.01em;
+}
+.foot-link svg { opacity: 0; transform: translateX(-4px); transition: opacity 0.2s, transform 0.2s; }
+.foot-link:hover svg, .foot-link:focus-visible svg { opacity: 1; transform: translateX(0); }
+
+/* Page entrance */
+@keyframes page-rise { 0% { opacity: 0; transform: translateY(14px); } 100% { opacity: 1; transform: translateY(0); } }
+.page-rise { animation: page-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Bars/segments grow-in for the dashboard */
+@keyframes grow-w { from { width: 0; } }
+@keyframes grow-h { from { height: 0; } }
+
+/* Card lift */
+.lift { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s; }
+.lift:hover { transform: translateY(-4px); box-shadow: var(--s-shadow); }
+
+@media print {
+  .no-print { display: none !important; }
+  .site-scope { --s-glass: #fff; --s-glass-strong: #fff; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-rise, .lift { animation: none; transition: none; }
+}
+
+/* ══ Language detection modal ═══════════════════════════════════════════ */
+@keyframes lang-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lang-overlay-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes lang-card-in {
+  0% { opacity: 0; transform: translateY(12px) scale(0.94); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes lang-card-out {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(8px) scale(0.96); }
+}
+.lang-overlay { animation: lang-overlay-in 0.25s ease both; }
+.lang-overlay[data-closing='true'] { animation: lang-overlay-out 0.2s ease both; }
+.lang-card { animation: lang-card-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+.lang-card[data-closing='true'] { animation: lang-card-out 0.2s ease both; }
+
+@keyframes lang-spin { to { transform: rotate(360deg); } }
+.lang-spin { animation: lang-spin 0.7s linear infinite; }
+
+@keyframes toast-in {
+  0% { opacity: 0; transform: translate(-50%, 16px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes toast-out {
+  0% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 16px); }
+}
+.lang-toast { animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.lang-toast[data-closing='true'] { animation: toast-out 0.3s ease both; }
+
+/* A globe that turns slowly while the modal is open */
+@keyframes globe-turn { to { background-position: -40px 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lang-overlay, .lang-card, .lang-toast, .lang-spin { animation-duration: 0.001s; }
 }

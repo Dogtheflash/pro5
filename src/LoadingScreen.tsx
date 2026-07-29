@@ -7,10 +7,11 @@ import { useEffect, useRef, useState } from 'react'
  * with a rotating specular highlight. A progress pill fills with fluid easing,
  * then the whole screen dismisses with the signature blur-and-scale reveal.
  */
-export default function LoadingScreen({ onDone }: { onDone: () => void }) {
+export default function LoadingScreen({ onDone, montage = [] }: { onDone: () => void; montage?: string[] }) {
   const [progress, setProgress] = useState(0)
   const [ready, setReady] = useState(false)
   const [dismissing, setDismissing] = useState(false)
+  const [scene, setScene] = useState(0)
   const rafRef = useRef<number>(0)
 
   useEffect(() => {
@@ -33,11 +34,19 @@ export default function LoadingScreen({ onDone }: { onDone: () => void }) {
     return () => cancelAnimationFrame(rafRef.current)
   }, [])
 
+  // Cinematic montage — cycle characteristic moments from each country.
+  useEffect(() => {
+    if (montage.length === 0) return
+    const id = setInterval(() => setScene((s) => (s + 1) % montage.length), 2200)
+    return () => clearInterval(id)
+  }, [montage.length])
+
   const pct = Math.round(progress * 100)
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-hidden ${dismissing ? 'ios-dismiss' : ''}`}
+      className={`fixed inset-0 z-50 overflow-hidden bg-[#0d0a08] ${dismissing ? 'ios-dismiss' : ''}`}
+      style={{ width: '100vw', height: '100dvh' }}
       onAnimationEnd={(e) => {
         if (e.animationName === 'ios-dismiss') onDone()
       }}
@@ -46,6 +55,21 @@ export default function LoadingScreen({ onDone }: { onDone: () => void }) {
     >
       {/* Deep base ground */}
       <div className="absolute inset-0 bg-[#0d0a08]" />
+
+      {/* Cinematic montage — characteristic moments from each country */}
+      <div className="absolute inset-0 overflow-hidden">
+        {montage.map((src, i) => (
+          <img
+            key={src}
+            src={src}
+            alt=""
+            aria-hidden="true"
+            className={`kenburns-active absolute inset-0 h-full w-full object-cover transition-opacity duration-[1600ms] ease-in-out ${
+              i === scene ? 'opacity-40' : 'opacity-0'
+            }`}
+          />
+        ))}
+      </div>
 
       {/* Living gradient mesh — drifting color blobs */}
       <div className="absolute inset-0">

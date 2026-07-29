@@ -1,0 +1,8 @@
+{
+  "hero": {
+    "title": "Chào mừng đến với Asia Grand Tour",
+    "subtitle": "Lên kế hoạch cho chuyến đi khắp Đông Nam Á."
+  },
+  "cta": { "explore": "Khám phá ngay" },
+  "search": { "placeholder": "Tìm điểm đến" }
+}

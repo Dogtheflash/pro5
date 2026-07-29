@@ -1,0 +1,8 @@
+{
+  "hero": {
+    "title": "Selamat datang di Asia Grand Tour",
+    "subtitle": "Rencanakan perjalanan Anda ke seluruh Asia Tenggara."
+  },
+  "cta": { "explore": "Jelajahi sekarang" },
+  "search": { "placeholder": "Cari destinasi" }
+}
