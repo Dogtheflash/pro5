@@ -6269,7 +6269,9 @@ const useCountryTheme = () => useContext(CountryThemeContext)
 // blurred and darkened for legibility, with a faint accent pattern on top.
 // ─── Discover Vietnam — Journeys & Flavors From Every Region ─────────────────
 
-function DiscoverVietnamSection({ onExploreDestinations }: { onExploreDestinations?: () => void }) {
+// ─── Discover Southeast Asia — Journeys & Flavors From Every Corner ─────────
+
+function DiscoverSoutheastAsiaSection({ onExploreDestinations }: { onExploreDestinations?: () => void }) {
   const [subscribed, setSubscribed] = useState(false)
   const [email, setEmail] = useState('')
 
@@ -6280,28 +6282,52 @@ function DiscoverVietnamSection({ onExploreDestinations }: { onExploreDestinatio
     }
   }
 
+  const SEA_DESTINATIONS = [
+    { country: 'Vietnam', flag: '🇻🇳', text: "Terraced rice fields, limestone karsts, and lantern-lit old towns. Highlights include Sapa's trekking trails, Ha Long Bay, and the imperial city of Hue." },
+    { country: 'Thailand', flag: '🇹🇭', text: "Golden temples, tropical islands, and legendary street food. Explore Bangkok's markets, Chiang Mai's mountains, and the beaches of Krabi and Koh Samui." },
+    { country: 'Cambodia', flag: '🇰🇭', text: "Ancient wonders and quiet river towns. Discover the temples of Angkor, the riverside charm of Phnom Penh, and the coastal calm of Kep." },
+    { country: 'Laos', flag: '🇱🇦', text: "Slow travel at its finest. Wander the UNESCO streets of Luang Prabang, cruise the Mekong, and explore the karst landscapes of Vang Vieng." },
+    { country: 'Myanmar', flag: '🇲🇲', text: "Golden pagodas and timeless traditions. Visit the temple plains of Bagan, the waters of Inle Lake, and the streets of Yangon." },
+    { country: 'Indonesia', flag: '🇮🇩', text: "Volcanoes, rice terraces, and island life. Experience Bali's culture, Yogyakarta's temples, and the diving spots of Raja Ampat." },
+    { country: 'Malaysia', flag: '🇲🇾', text: "A crossroads of cultures. Explore Kuala Lumpur's skyline, Penang's heritage streets, and the rainforests of Borneo." },
+    { country: 'Philippines', flag: '🇵🇭', text: "Turquoise waters and thousands of islands. Discover Palawan's lagoons, Cebu's beaches, and the rice terraces of Banaue." },
+    { country: 'Singapore', flag: '🇸🇬', text: "A gateway city of gardens and global flavors. A perfect stop for a short stay or a launch point for the region." },
+    { country: 'Brunei', flag: '🇧🇳', text: "Rich heritage on the shores of Borneo. Explore the water village of Kampong Ayer and pristine rainforest reserves." },
+  ]
+
+  const SPECIALTY_PRODUCTS = [
+    { country: 'Vietnam', flag: '🇻🇳', specialty: '🍵 Shan Tuyet ancient tea, 🐟 Phu Quoc fish sauce, 🥥 coconut candy', story: 'Highland ancient tea trees & artisanal wooden barrel-aged sauces.' },
+    { country: 'Thailand', flag: '🇹🇭', specialty: '🌾 Thai jasmine rice, ☕ northern coffee, 🥭 dried mango', story: 'Hom Mali jasmine rice & Chiang Mai mountain arabica beans.' },
+    { country: 'Cambodia', flag: '🇰🇭', specialty: '🌶️ Kampot pepper, 🌴 palm sugar, 🐟 prahok', story: 'World-famous PGI Kampot pepper & traditional palm sugar.' },
+    { country: 'Laos', flag: '🇱🇦', specialty: '☕ Laotian coffee, 🌾 sticky rice, 🍵 mulberry tea', story: 'Bolaven plateau volcanic coffee & organic mulberry leaves.' },
+    { country: 'Myanmar', flag: '🇲🇲', specialty: '🍃 Shan tea leaves, 🥗 tea-leaf salad mix, 🌿 thanaka', story: 'Highland pickled tea leaves & natural Thanaka bark.' },
+    { country: 'Indonesia', flag: '🇮🇩', specialty: '☕ Bali coffee, 🌰 nutmeg, 🌶️ sambal pastes', story: 'Single-origin Kintamani coffee & Banda island spices.' },
+    { country: 'Malaysia', flag: '🇲🇾', specialty: '🌶️ Sarawak pepper, 🌿 tongkat ali, 🌴 gula melaka', story: 'Borneo rainforest Sarawak pepper & pure coconut palm sugar.' },
+    { country: 'Philippines', flag: '🇵🇭', specialty: '🍫 Cacao tablea, 🍋 calamansi products, 🥭 dried mangoes', story: 'Davao heritage cacao & sun-dried Guimaras sweet mangoes.' },
+  ]
+
   return (
     <section className="my-12 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-6 sm:p-10 shadow-xl overflow-hidden relative">
-      {/* Background Accent Mesh */}
-      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-80 h-80 rounded-full bg-[var(--color-primary)]/10 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-80 h-80 rounded-full bg-[var(--color-accent)]/10 blur-3xl pointer-events-none" />
+      {/* Background Ambient Glows */}
+      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 rounded-full bg-[var(--color-primary)]/10 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-96 h-96 rounded-full bg-[var(--color-accent)]/10 blur-3xl pointer-events-none" />
 
       {/* Hero Section */}
       <div className="mb-10 text-center max-w-3xl mx-auto">
         <div className="font-mono text-xs uppercase tracking-[0.35em] text-[var(--color-primary)] mb-2">
-          Featured Journey & Regional Showcase
+          Grand Tour Regional Showcase
         </div>
         <h2 className="font-carve text-3xl sm:text-5xl font-600 leading-tight mb-4">
-          Discover Vietnam — Journeys & Flavors From Every Region
+          Discover Southeast Asia — Journeys & Flavors From Every Corner
         </h2>
         <p className="font-display text-xl italic text-[var(--color-primary)] mb-4">
-          "Explore Vietnam, One Story at a Time"
+          "Explore Southeast Asia, One Story at a Time"
         </p>
         <p className="font-body text-base sm:text-lg text-[var(--color-muted-foreground)] leading-relaxed mb-6">
-          From the misty mountains of the North to the sun-soaked deltas of the South, Vietnam is a country of endless contrasts — ancient citadels, hidden waterfalls, bustling night markets, and quiet fishing villages that time seems to have forgotten. We bring you closer to it all: curated travel experiences paired with the authentic local specialties that define each destination.
+          From the temple spires of Cambodia to the rice terraces of the Philippines, from Thailand's golden coastlines to Indonesia's volcanic islands, Southeast Asia is a region of endless wonder. We bring you closer to it all: curated travel experiences paired with the authentic local specialties that define each destination.
         </p>
         <p className="font-script text-2xl text-[var(--color-foreground)] mb-6">
-          *Book a journey. Taste a region. Take a piece of Vietnam home with you.*
+          *Book a journey. Taste a country. Take a piece of Southeast Asia home with you.*
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <button
@@ -6311,7 +6337,7 @@ function DiscoverVietnamSection({ onExploreDestinations }: { onExploreDestinatio
             Explore Destinations
           </button>
           <a
-            href="#specialties-table"
+            href="#sea-specialties"
             className="px-6 py-3 rounded-full font-mono text-xs uppercase tracking-widest border border-[var(--color-border)] bg-[var(--color-muted)] text-[var(--color-foreground)] hover:border-[var(--color-primary)] transition-all lift cursor-pointer"
           >
             Shop Local Specialties
@@ -6326,105 +6352,81 @@ function DiscoverVietnamSection({ onExploreDestinations }: { onExploreDestinatio
         <h3 className="font-carve text-2xl mb-6 text-center">Why Travel With Us</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="p-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 hover:border-[var(--color-primary)] transition-all">
-            <div className="text-3xl mb-3">📍</div>
+            <div className="text-3xl mb-3">🌏</div>
             <h4 className="font-display text-lg font-600 mb-2">Local Expertise</h4>
             <p className="font-body text-sm text-[var(--color-muted-foreground)]">
-              Routes designed by guides who grew up in the regions they showcase.
+              Routes designed by guides who grew up in the countries they showcase.
             </p>
           </div>
           <div className="p-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 hover:border-[var(--color-primary)] transition-all">
-            <div className="text-3xl mb-3">🍯</div>
+            <div className="text-3xl mb-3">🏺</div>
             <h4 className="font-display text-lg font-600 mb-2">Authentic Specialties</h4>
             <p className="font-body text-sm text-[var(--color-muted-foreground)]">
-              Sourced directly from local farmers, artisans, and family producers.
+              Sourced directly from local farmers, artisans, and family producers across the region.
             </p>
           </div>
           <div className="p-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 hover:border-[var(--color-primary)] transition-all">
             <div className="text-3xl mb-3">🗺️</div>
             <h4 className="font-display text-lg font-600 mb-2">Flexible Itineraries</h4>
             <p className="font-body text-sm text-[var(--color-muted-foreground)]">
-              From weekend getaways to multi-region adventures tailored to you.
+              From single-country escapes to multi-country adventures tailored to your speed.
             </p>
           </div>
           <div className="p-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-muted)]/30 hover:border-[var(--color-primary)] transition-all">
-            <div className="text-3xl mb-3">🌿</div>
+            <div className="text-3xl mb-3">🌱</div>
             <h4 className="font-display text-lg font-600 mb-2">Sustainable Tourism</h4>
             <p className="font-body text-sm text-[var(--color-muted-foreground)]">
-              Partnering with communities to protect the pristine places we love.
+              Partnering with local communities to protect the precious places we love.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Featured Destinations Across Vietnam */}
+      {/* Featured Destinations Across Southeast Asia */}
       <div className="mb-12">
-        <h3 className="font-carve text-2xl mb-6 text-center">Featured Destinations Across Vietnam</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* North */}
-          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] overflow-hidden shadow-md group hover:-translate-y-1 transition-all duration-300">
-            <div className="p-6">
-              <span className="font-mono text-xs uppercase tracking-widest text-[var(--color-primary)]">Region 01</span>
-              <h4 className="font-carve text-2xl mt-1 mb-3">Northern Vietnam</h4>
+        <h3 className="font-carve text-2xl mb-6 text-center">Featured Destinations Across Southeast Asia</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {SEA_DESTINATIONS.map((item) => (
+            <div key={item.country} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl leading-none">{item.flag}</span>
+                <h4 className="font-carve text-xl">{item.country}</h4>
+              </div>
               <p className="font-body text-sm text-[var(--color-muted-foreground)] leading-relaxed">
-                Terraced rice fields, limestone karsts, and highland culture. Highlights include Sapa's trekking trails, the emerald waters of Ha Long Bay, and the timeless charm of Hanoi's Old Quarter.
+                {item.text}
               </p>
             </div>
-          </div>
-          {/* Central */}
-          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] overflow-hidden shadow-md group hover:-translate-y-1 transition-all duration-300">
-            <div className="p-6">
-              <span className="font-mono text-xs uppercase tracking-widest text-[var(--color-primary)]">Region 02</span>
-              <h4 className="font-carve text-2xl mt-1 mb-3">Central Vietnam</h4>
-              <p className="font-body text-sm text-[var(--color-muted-foreground)] leading-relaxed">
-                History and heritage meet golden coastlines. Wander the lantern-lit streets of Hoi An, explore the imperial city of Hue, and relax on the beaches of Da Nang.
-              </p>
-            </div>
-          </div>
-          {/* South */}
-          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] overflow-hidden shadow-md group hover:-translate-y-1 transition-all duration-300">
-            <div className="p-6">
-              <span className="font-mono text-xs uppercase tracking-widest text-[var(--color-primary)]">Region 03</span>
-              <h4 className="font-carve text-2xl mt-1 mb-3">Southern Vietnam</h4>
-              <p className="font-body text-sm text-[var(--color-muted-foreground)] leading-relaxed">
-                Vibrant energy and river life. Experience the pulse of Ho Chi Minh City, drift through the floating markets of the Mekong Delta, and unwind on the islands of Phu Quoc.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Taste of Vietnam: Specialty Products */}
-      <div id="specialties-table" className="mb-12">
-        <h3 className="font-carve text-2xl mb-2 text-center">Taste of Vietnam: Specialty Products</h3>
+      {/* Taste of Southeast Asia: Specialty Products */}
+      <div id="sea-specialties" className="mb-12">
+        <h3 className="font-carve text-2xl mb-2 text-center">Taste of Southeast Asia: Specialty Products</h3>
         <p className="font-body text-center text-sm text-[var(--color-muted-foreground)] max-w-xl mx-auto mb-6">
-          Every region has a flavor of its own. Bring it home with our curated collection of authentic Vietnamese specialties:
+          Every country has a flavor of its own. Bring it home with our curated collection of authentic Southeast Asian specialties:
         </p>
 
-        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] mb-6 shadow-sm">
+        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm">
           <table className="w-full text-left font-mono text-sm border-collapse">
             <thead>
               <tr className="bg-[var(--color-muted)] border-b border-[var(--color-border)]">
-                <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Region</th>
+                <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Country</th>
                 <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Signature Specialty</th>
-                <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Story & Origin</th>
+                <th className="p-4 font-mono text-xs uppercase tracking-wider text-[var(--color-muted-foreground)]">Origin & Story</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)] font-body">
-              <tr className="hover:bg-[var(--color-muted)]/30 transition-colors">
-                <td className="p-4 font-mono font-600 text-[var(--color-primary)]">North</td>
-                <td className="p-4 font-500">🍵 Shan Tuyet ancient tea, 🍶 Sapa herbal wine, 🍯 Bac Kan honey</td>
-                <td className="p-4 text-xs text-[var(--color-muted-foreground)]">Sourced from 300-year-old highland tea trees and pristine mountain forests.</td>
-              </tr>
-              <tr className="hover:bg-[var(--color-muted)]/30 transition-colors">
-                <td className="p-4 font-mono font-600 text-[var(--color-primary)]">Central</td>
-                <td className="p-4 font-500">🌾 Hue purple rice, 🪵 Quang Nam cinnamon, 🫓 Hoi An rice paper</td>
-                <td className="p-4 text-xs text-[var(--color-muted-foreground)]">Crafted by generations of royal heritage farmers and coastal artisans.</td>
-              </tr>
-              <tr className="hover:bg-[var(--color-muted)]/30 transition-colors">
-                <td className="p-4 font-mono font-600 text-[var(--color-primary)]">South</td>
-                <td className="p-4 font-500">🥥 Ben Tre coconut candy, 🥭 Mekong dried fruits, 🐟 Phu Quoc fish sauce</td>
-                <td className="p-4 text-xs text-[var(--color-muted-foreground)]">Artisanal coconut crafts and traditional wooden barrel-aged fish sauce.</td>
-              </tr>
+              {SPECIALTY_PRODUCTS.map((sp) => (
+                <tr key={sp.country} className="hover:bg-[var(--color-muted)]/30 transition-colors">
+                  <td className="p-4 font-mono font-600 text-[var(--color-primary)] flex items-center gap-2">
+                    <span>{sp.flag}</span>
+                    <span>{sp.country}</span>
+                  </td>
+                  <td className="p-4 font-500">{sp.specialty}</td>
+                  <td className="p-4 text-xs text-[var(--color-muted-foreground)]">{sp.story}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -6436,19 +6438,19 @@ function DiscoverVietnamSection({ onExploreDestinations }: { onExploreDestinatio
         <ul className="space-y-3 font-body text-base">
           <li className="flex items-start gap-3">
             <span className="px-2 py-0.5 rounded bg-[var(--color-primary)] text-white font-mono text-[10px] uppercase font-600">NEW</span>
-            <div><strong>New Trekking Routes in Ha Giang</strong> — Off-the-beaten-path itineraries through Vietnam's most dramatic mountain scenery.</div>
+            <div><strong>New Multi-Country Routes</strong> — Combine Vietnam, Laos, and Cambodia in one seamless overland itinerary.</div>
           </li>
           <li className="flex items-start gap-3">
             <span className="px-2 py-0.5 rounded bg-[var(--color-primary)] text-white font-mono text-[10px] uppercase font-600">NEW</span>
-            <div><strong>Limited-Batch Specialty Boxes</strong> — Seasonal collections featuring the best of each region, delivered monthly.</div>
+            <div><strong>Limited-Batch Regional Boxes</strong> — Seasonal collections featuring the best specialties from across Southeast Asia, delivered monthly.</div>
           </li>
           <li className="flex items-start gap-3">
             <span className="px-2 py-0.5 rounded bg-[var(--color-primary)] text-white font-mono text-[10px] uppercase font-600">NEW</span>
-            <div><strong>Community Homestay Program</strong> — Stay with local families in Central Highlands villages for an immersive cultural experience.</div>
+            <div><strong>Community Homestay Program</strong> — Stay with local families in villages from Northern Vietnam to Central Java.</div>
           </li>
           <li className="flex items-start gap-3">
             <span className="px-2 py-0.5 rounded bg-[var(--color-primary)] text-white font-mono text-[10px] uppercase font-600">NEW</span>
-            <div><strong>Sustainable Travel Certification</strong> — Our latest partner destinations now meet updated eco-tourism standards.</div>
+            <div><strong>Sustainable Travel Certification</strong> — Our latest partner destinations across the region now meet updated eco-tourism standards.</div>
           </li>
         </ul>
       </div>
@@ -6457,12 +6459,12 @@ function DiscoverVietnamSection({ onExploreDestinations }: { onExploreDestinatio
       <div className="rounded-lg border border-[var(--color-primary)] bg-[var(--color-card)] p-6 sm:p-8 text-center max-w-2xl mx-auto shadow-lg">
         <h3 className="font-carve text-2xl mb-2">Join Our Community</h3>
         <p className="font-body text-sm text-[var(--color-muted-foreground)] mb-6">
-          Sign up for travel inspiration, new destination guides, and first access to limited specialty product releases.
+          Sign up for travel inspiration, new destination guides, and first access to limited specialty product releases from across Southeast Asia.
         </p>
 
         {subscribed ? (
           <div className="p-4 rounded bg-green-500/15 border border-green-500/30 text-green-700 dark:text-green-300 font-mono text-sm">
-            ✓ Welcome to the community! Check your inbox for your first regional travel guide.
+            ✓ Welcome to the community! Check your inbox for your first Southeast Asian travel guide.
           </div>
         ) : (
           <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
@@ -6484,7 +6486,7 @@ function DiscoverVietnamSection({ onExploreDestinations }: { onExploreDestinatio
         )}
 
         <p className="mt-6 font-script text-xl text-[var(--color-muted-foreground)]">
-          *Vietnam is best experienced slowly — one region, one dish, one story at a time. Let us help you find yours.*
+          *Southeast Asia is best experienced slowly — one country, one dish, one story at a time. Let us help you find yours.*
         </p>
       </div>
     </section>
@@ -7104,9 +7106,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── Discover Vietnam — Journeys & Flavors From Every Region ── */}
+        {/* ── Discover Southeast Asia — Journeys & Flavors From Every Corner ── */}
         <ScrollReveal>
-          <DiscoverVietnamSection onExploreDestinations={() => window.scrollTo({ top: 400, behavior: 'smooth' })} />
+          <DiscoverSoutheastAsiaSection onExploreDestinations={() => window.scrollTo({ top: 400, behavior: 'smooth' })} />
         </ScrollReveal>
 
         {/* ── Regional storytelling (shared across the whole tour) ── */}
