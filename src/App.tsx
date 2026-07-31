@@ -10,6 +10,7 @@ import LanguageSwitcher from './i18n/LanguageSwitcher'
 import VersionSwitcher, { readUiVersion, type UiVersion } from './VersionSwitcher'
 import { AuroraTravelAgencySection } from './site/AuroraTravelAgencySection'
 import { WarmRestaurantSection } from './site/WarmRestaurantSection'
+import { ClaymorphismEduPlatformSection } from './site/ClaymorphismEduPlatformSection'
 
 interface Activity {
   time: string
@@ -8135,6 +8136,9 @@ function NetflixHome() {
           <WarmRestaurantSection
             onAddToCart={(item) => j.add({ id: item.id, title: item.name, city: item.country, day: 99, costUsd: item.priceUsd, flag: item.flag })}
           />
+          <ClaymorphismEduPlatformSection
+            onAddToCart={(item) => j.add({ id: item.id, title: item.name, city: item.country, day: 99, costUsd: item.priceUsd, flag: item.flag })}
+          />
           <div className="relative z-10 mt-8 pb-16">
             <NfRow title="New & Trending" items={NF_RECENT.slice(0, 14)} onOpen={setOpen} />
             {REGION_GUIDE.map((c) => (
@@ -8514,6 +8518,11 @@ export default function App() {
         {/* ── Warm Bistro & Restaurant Section ── */}
         <Reveal delay={160}>
           <WarmRestaurantSection />
+        </Reveal>
+
+        {/* ── Claymorphism Educational Platform Section ── */}
+        <Reveal delay={200}>
+          <ClaymorphismEduPlatformSection />
         </Reveal>
       </main>
 
